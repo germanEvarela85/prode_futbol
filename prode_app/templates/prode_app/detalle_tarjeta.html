@@ -1,0 +1,81 @@
+{% extends "prode_app/base.html" %}
+{% block content %}
+
+<h1>Detalle - Tarjeta {{ tarjeta.numero_tarjeta }} (Fecha {{ tarjeta.fecha.numero }})</h1>
+
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Partido</th>
+                <th>Tu pronóstico</th>
+                <th>Resultado real</th>
+                <th>Acierto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in detalles %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+
+                <td>
+                    {% if item.pronostico.partido.local.escudo %}
+                        <img src="{{ item.pronostico.partido.local.escudo.url }}" width="30" height="30" alt="{{ item.pronostico.partido.local.nombre }}">
+                    {% endif %}
+                    {{ item.pronostico.partido.local.nombre }}
+
+                    &nbsp;vs&nbsp;
+
+                    {% if item.pronostico.partido.visitante.escudo %}
+                        <img src="{{ item.pronostico.partido.visitante.escudo.url }}" width="30" height="30" alt="{{ item.pronostico.partido.visitante.nombre }}">
+                    {% endif %}
+                    {{ item.pronostico.partido.visitante.nombre }}
+                </td>
+
+                <td>
+                    {{ item.pronostico.get_opcion1_display }}
+                    {% if item.pronostico.opcion2 %}
+                        / {{ item.pronostico.get_opcion2_display }}
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if item.resultado %}
+                        {% if item.resultado == 1 %}
+                            {{ item.pronostico.partido.local.nombre }}
+                        {% elif item.resultado == 2 %}
+                            Empate
+                        {% else %}
+                            {{ item.pronostico.partido.visitante.nombre }}
+                        {% endif %}
+                    {% else %}
+                        Pendiente
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if item.acierto %}Sí{% else %}No{% endif %}
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top:15px;">
+        {% if user.is_superuser %}
+        <a href="{% url 'borrar_tarjeta' tarjeta.id %}"
+           onclick="return confirm('¿Seguro que deseas borrar esta tarjeta?');"
+           class="button boton-rojo">
+           Borrar Tarjeta
+        </a>
+        {% endif %}
+
+        <a href="{% url 'mis_tarjetas' %}" class="button secondary" style="margin-left:10px;">
+            Volver a Mis Tarjetas
+        </a>
+    </div>
+</div>
+
+{% endblock %}

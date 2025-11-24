@@ -1,0 +1,8 @@
+Hola {{ user.username }},
+
+Hemos recibido el comprobante que subiste para la tarjeta {{ tarjeta.nombre_tarjeta }} (Fecha {{ tarjeta.fecha.numero }}).
+
+Si necesitas, podés contactarnos.
+
+Saludos,
+El equipo de Prode Fútbol

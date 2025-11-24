@@ -1,0 +1,13 @@
+<p>Hola {{ user.username }},</p>
+
+<p>Gracias por registrarte en <strong>Prode Fútbol</strong>.</p>
+
+<p>Para activar tu cuenta, hacé clic en el siguiente enlace:</p>
+
+<p>
+    <a href="http://{{ domain }}{% url 'activar_cuenta' uidb64=uid token=token %}">
+        Activar cuenta
+    </a>
+</p>
+
+<p>Si no te registraste, podés ignorar este mensaje.</p>

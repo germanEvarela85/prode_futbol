@@ -1,0 +1,43 @@
+{% extends "prode_app/base.html" %}
+{% block content %}
+
+<h1>Ranking Fecha {{ fecha.numero }}</h1>
+
+<div style="margin-bottom:15px;">
+    <a href="{% url 'mis_tarjetas' %}" class="button secondary">Volver</a>
+</div>
+
+{% if ranking %}
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Puesto</th>
+                <th>Usuario</th>
+                <th>Tarjeta</th>
+                <th>Puntos</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in ranking %}
+            <tr>
+                <td>{{ r.puesto }}</td>
+                <td>{{ r.tarjeta.usuario.username }}</td>
+                <td>{{ r.tarjeta.nombre_tarjeta }}</td>
+                <td>{{ r.tarjeta.puntos }}</td>
+                <td>
+                    <a href="{% url 'detalle_tarjeta' r.tarjeta.id %}" class="button secondary" style="padding:4px 8px; font-size:0.9rem;">
+                        Ver detalle
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p>No hay tarjetas para esta fecha todavía.</p>
+{% endif %}
+
+{% endblock %}

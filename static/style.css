@@ -1,0 +1,293 @@
+/* ===============================
+   style.css — PRODE Dashboard Premium
+   Palette:
+   - Fondo: azul marino oscuro
+   - Cartas: azul oscuro suave con sombra
+   - Botones: blanco con borde bordó y hover
+   - Acentos: bordó (#6b0f18)
+   - Texto: claro sobre fondo oscuro
+   =============================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg: #071428;
+    --card-bg: #0e1b2a;
+    --accent: #6b0f18;
+    --white: #ffffff;
+    --muted: #9fb0c8;
+    --radius: 12px;
+    --gap: 16px;
+    --transition: 0.25s ease-in-out;
+}
+
+/* ----------------------
+   Global
+----------------------- */
+* { box-sizing: border-box; }
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: linear-gradient(180deg, var(--bg) 0%, #071328 85%);
+    color: var(--white);
+    line-height: 1.5;
+}
+
+/* ----------------------
+   Container
+----------------------- */
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px;
+}
+
+/* ----------------------
+   Header & Nav
+----------------------- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+header h1 {
+    font-size: 2.2rem;
+    margin: 0;
+    letter-spacing: 1px;
+}
+header p {
+    font-size: 1rem;
+    color: var(--muted);
+    margin: 0;
+}
+nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap);
+    margin-top: 10px;
+}
+nav a {
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    color: var(--white);
+    border: 1px solid transparent;
+    transition: all var(--transition);
+}
+nav a:hover {
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-2px);
+}
+nav a.primary {
+    background: var(--white);
+    color: var(--bg);
+    border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* ----------------------
+   Buttons
+----------------------- */
+.button, .boton-rojo, .nav a.primary {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid var(--accent);
+    background: var(--white);
+    color: var(--bg);
+    text-decoration: none;
+    transition: all var(--transition);
+}
+.button:hover, .boton-rojo:hover, .nav a.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+}
+.button.secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--white);
+}
+.boton-rojo {
+    background: var(--accent);
+    color: var(--white);
+}
+.boton-rojo:hover {
+    background: #500c0f;
+}
+
+/* ----------------------
+   Cards & Listas
+----------------------- */
+.card, .card-item {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+.card:hover, .card-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 35px rgba(0,0,0,0.7);
+}
+.card-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(280px,1fr));
+    gap: var(--gap);
+    margin-top: 20px;
+}
+.card-item h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+}
+.card-item p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+/* ----------------------
+   Tables
+----------------------- */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+.table th, .table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.table th {
+    font-size: 0.9rem;
+    color: var(--muted);
+    background: rgba(255,255,255,0.03);
+}
+.table td {
+    font-size: 0.95rem;
+}
+
+/* Alternating rows */
+.table tr:nth-child(even) {
+    background: rgba(255,255,255,0.02);
+}
+
+/* Aciertos/Fallos */
+.positive { color: #4CAF50; font-weight: 600; }
+.negative { color: #E53935; font-weight: 600; }
+
+/* ----------------------
+   Forms
+----------------------- */
+form label {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+    color: var(--muted);
+}
+input[type="text"], input[type="password"], input[type="email"], select {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    color: var(--white);
+    margin-bottom: 12px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(107,15,24,0.5);
+}
+
+/* ----------------------
+   Pronósticos / Radio
+----------------------- */
+.radio-group {
+    display: flex;
+    gap: 12px;
+    margin: 10px 0;
+}
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.02);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.radio-group input[type="radio"] { accent-color: var(--accent); }
+
+/* ----------------------
+   Alerts
+----------------------- */
+.alert {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    font-weight: 600;
+}
+.alert.success {
+    background: rgba(32,150,85,0.08);
+    color: #c8ffd9;
+    border: 1px solid rgba(32,150,85,0.12);
+}
+.alert.error {
+    background: rgba(107,15,24,0.12);
+    color: #ffcfcf;
+    border: 1px solid rgba(107,15,24,0.18);
+}
+
+/* ----------------------
+   Ranking / Tarjetas visuales
+----------------------- */
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 18px;
+}
+.ranking-table th, .ranking-table td {
+    padding: 12px 15px;
+    text-align: left;
+}
+.ranking-table th {
+    font-size: 0.95rem;
+    color: var(--muted);
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+}
+.ranking-table tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+
+/* Ranking positions */
+.position {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+/* ----------------------
+   Footer
+----------------------- */
+footer {
+    margin-top: 40px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* ----------------------
+   Responsive
+----------------------- */
+@media (max-width: 768px){
+    .container { padding: 14px; }
+    header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .card-list { grid-template-columns: 1fr; }
+    .radio-group { flex-direction: column; }
+}

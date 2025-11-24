@@ -1,0 +1,31 @@
+{% extends "prode_app/base.html" %}
+
+{% block content %}
+<h1>Subir comprobante de pago</h1>
+
+{% if mensaje %}
+    <p>{{ mensaje }}</p>
+{% endif %}
+
+{% for message in messages %}
+    <p>{{ message }}</p>
+{% endfor %}
+
+<p>Realizá la transferencia a:</p>
+<ul>
+    <li><strong>Banco:</strong> {{ cuenta_info.banco }}</li>
+    <li><strong>Alias:</strong> {{ cuenta_info.alias }}</li>
+    <li><strong>CBU:</strong> {{ cuenta_info.cbu }}</li>
+    <li><strong>Titular:</strong> {{ cuenta_info.titular }}</li>
+</ul>
+
+<p><strong>Importante:</strong> Solo aparecen tus tarjetas para que selecciones la correcta.</p>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Enviar comprobante</button>
+</form>
+
+<p>Una vez enviado, recibirás un email de confirmación como constancia.</p>
+{% endblock %}

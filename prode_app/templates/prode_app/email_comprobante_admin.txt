@@ -1,0 +1,6 @@
+Nuevo comprobante cargado por {{ user.username }}.
+
+Tarjeta: {{ tarjeta.nombre_tarjeta }}
+Fecha: {{ tarjeta.fecha.numero }}
+
+Revisá el adjunto para ver el comprobante.

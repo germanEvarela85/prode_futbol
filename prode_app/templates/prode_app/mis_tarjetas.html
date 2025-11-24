@@ -1,0 +1,44 @@
+{% extends "prode_app/base.html" %}
+{% block content %}
+
+<h1>Mis Tarjetas</h1>
+
+<!-- Botón para crear una nueva tarjeta -->
+<p>
+    <a href="{% url 'crear_tarjeta' %}" class="button">Crear Tarjeta</a>
+</p>
+
+{% if tarjetas %}
+<div class="card-list">
+    {% for t in tarjetas %}
+    <div class="card-item">
+        <h3>{{ t.nombre_tarjeta }}</h3>
+        <p>
+            <em>Por: {{ t.usuario.username }}{% if t.usuario == user %} (Tu tarjeta){% endif %}</em><br>
+            Fecha: {{ t.fecha.numero }} — Puntos: <strong>{{ t.puntos }}</strong>
+        </p>
+
+        <div style="margin-top:10px;">
+            <!-- Ver detalle -->
+            <a href="{% url 'detalle_tarjeta' t.id %}" class="button secondary">Ver detalle</a>
+
+            <!-- Borrar solo superusuario -->
+            {% if user.is_superuser %}
+            <a href="{% url 'borrar_tarjeta' t.id %}" 
+               onclick="return confirm('¿Seguro que deseas borrar esta tarjeta?');" 
+               class="button boton-rojo">
+               Borrar
+            </a>
+            {% endif %}
+
+            <!-- Ver ranking -->
+            <a href="{% url 'ranking_fecha' t.fecha.id %}" class="button secondary">Ver Ranking</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p>No hay tarjetas todavía.</p>
+{% endif %}
+
+{% endblock %}

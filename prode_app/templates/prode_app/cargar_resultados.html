@@ -1,0 +1,58 @@
+{% extends "prode_app/base.html" %}
+{% block content %}
+
+<h1>Cargar Resultados - Fecha {{ fecha.numero }}</h1>
+
+<div style="margin-bottom:20px;">
+    <a href="{% url 'mis_tarjetas' %}" class="button secondary">Volver</a>
+</div>
+
+{% if partidos %}
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Partido</th>
+                    <th>Resultado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for partido in partidos %}
+                <tr>
+                    <td>{{ partido.local.nombre }} vs {{ partido.visitante.nombre }}</td>
+                    <td>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="resultado_{{ partido.id }}" value="1"
+                                    {% if partido.resultado_real == 1 %}checked{% endif %}>
+                                {{ partido.local.nombre }}
+                            </label>
+                            <label>
+                                <input type="radio" name="resultado_{{ partido.id }}" value="2"
+                                    {% if partido.resultado_real == 2 %}checked{% endif %}>
+                                Empate
+                            </label>
+                            <label>
+                                <input type="radio" name="resultado_{{ partido.id }}" value="3"
+                                    {% if partido.resultado_real == 3 %}checked{% endif %}>
+                                {{ partido.visitante.nombre }}
+                            </label>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div style="margin-top:15px;">
+            <button type="submit" class="button">Guardar Resultados</button>
+        </div>
+    </form>
+</div>
+{% else %}
+<p>No hay partidos para esta fecha.</p>
+{% endif %}
+
+{% endblock %}

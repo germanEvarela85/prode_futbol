@@ -1,0 +1,72 @@
+{% extends "prode_app/base.html" %}
+
+{% block content %}
+
+<div class="container" style="margin-top:30px;">
+
+    <h2 style="margin-bottom:20px;">Resultados de la búsqueda</h2>
+
+    {% if mensaje %}
+    <div class="alert error">
+        {{ mensaje }}
+    </div>
+    {% endif %}
+
+    {% if resultados %}
+        <div class="card-list">
+            {% for tarjeta in resultados %}
+                {% with pronosticos=tarjeta.pronostico_set.all %}
+                <div class="card-item">
+                    <h3>Tarjeta: {{ tarjeta.usuario.username }}{{ tarjeta.numero_tarjeta }}</h3>
+                    <p>Fecha: {{ tarjeta.fecha.numero }} | Puntos: <strong>{{ tarjeta.puntos }}</strong></p>
+
+                    <table class="table" style="margin-top:10px;">
+                        <thead>
+                            <tr>
+                                <th>Partido</th>
+                                <th>Pronóstico</th>
+                                <th>Opción Doble</th>
+                                <th>Resultado Real</th>
+                                <th>Acierto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in pronosticos %}
+                                {% with resultado=p.partido.resultado_real opcion1=p.opcion1 opcion2=p.opcion2 %}
+                                <tr>
+                                    <td>{{ p.partido.local }} vs {{ p.partido.visitante }}</td>
+                                    <td>{{ opcion1 }}</td>
+                                    <td>{% if opcion2 %}{{ opcion2 }}{% else %}-{% endif %}</td>
+                                    <td>{% if resultado %}{{ resultado }}{% else %}-{% endif %}</td>
+                                    <td>
+                                        {% if resultado %}
+                                            {% if resultado == opcion1 or resultado == opcion2 %}
+                                                ✔️
+                                            {% else %}
+                                                ❌
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top:10px;">
+                        <a href="{% url 'detalle_tarjeta' tarjeta.id %}" class="button secondary" style="margin-right:5px; font-size:0.85rem;">Ver detalle completo</a>
+                        <a href="{% url 'ranking_fecha' tarjeta.fecha.id %}" class="button secondary" style="font-size:0.85rem;">Ver ranking de la fecha</a>
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color:var(--muted); font-size:0.95rem;">No se encontraron tarjetas que coincidan con la búsqueda.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}
