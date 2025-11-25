@@ -1,6 +1,6 @@
 {% extends "prode_app/base.html" %}
-
 {% block content %}
+
 <h1>Subir comprobante de pago</h1>
 
 {% if mensaje %}
@@ -23,9 +23,27 @@
 
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Enviar comprobante</button>
+
+    <label for="id_tarjeta">Seleccioná tarjeta:</label>
+    <select name="tarjeta" id="id_tarjeta" required>
+        {% for t in tarjetas_usuario %}
+            <option value="{{ t.tarjeta.id }}" {% if t.pagada %}disabled{% endif %}>
+                {{ t.tarjeta.nombre_tarjeta }}
+                {% if t.pagada %} — ✅ Comprobante enviado{% endif %}
+            </option>
+        {% endfor %}
+    </select>
+
+    {{ form.archivo.label_tag }}
+    {{ form.archivo }}
+
+    {{ form.comentario.label_tag }}
+    {{ form.comentario }}
+
+    <br><br>
+    <button type="submit" class="button">Enviar comprobante</button>
 </form>
 
 <p>Una vez enviado, recibirás un email de confirmación como constancia.</p>
+
 {% endblock %}
