@@ -15,6 +15,7 @@ from django.core.mail import EmailMessage
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
+
 # --------------------------
 # REGISTRO Y ACTIVACIÓN
 # --------------------------
@@ -144,8 +145,8 @@ def crear_tarjeta(request, fecha_id=None):
                         opcion2=int(opcion2) if opcion2 else None
                     )
 
-            messages.success(request, "¡Tarjeta creada correctamente!")
-            return redirect("mis_tarjetas")
+            messages.info(request, "Tarjeta creada. Ahora debes subir el comprobante para activarla.")
+            return redirect("subir_comprobante")  # redirige directamente al upload
         else:
             messages.error(request, "Hay errores en el formulario.")
     else:
@@ -164,19 +165,32 @@ def crear_tarjeta(request, fecha_id=None):
 # --------------------------
 @login_required
 def mis_tarjetas(request):
-    tarjetas = (
-        Tarjeta.objects
-        .select_related('usuario', 'fecha')
-        .annotate(
-            es_mio=Case(
-                When(usuario=request.user, then=Value(1)),
-                default=Value(0),
-                output_field=IntegerField()
-            )
-        )
-        .order_by('-es_mio', '-fecha__numero', '-numero_tarjeta')
-    )
-    return render(request, "prode_app/mis_tarjetas.html", {"tarjetas": tarjetas})
+    """
+    Mostrar todas las tarjetas de todos los usuarios.
+    - Primero las tarjetas del usuario actual (más recientes primero).
+    - Luego las tarjetas del resto de los usuarios.
+    - Solo el superusuario puede borrar tarjetas.
+    - Se indican cuáles tienen comprobante enviado.
+    """
+    # Tarjetas del usuario actual
+    tarjetas_mias = Tarjeta.objects.filter(usuario=request.user).select_related('usuario', 'fecha').order_by('-fecha__numero','-numero_tarjeta')
+    
+    # Tarjetas de otros usuarios
+    tarjetas_otros = Tarjeta.objects.exclude(usuario=request.user).select_related('usuario', 'fecha').order_by('-fecha__numero','-numero_tarjeta')
+    
+    # Combinar listas manteniendo la separación
+    todas_tarjetas = list(tarjetas_mias) + list(tarjetas_otros)
+    
+    # Agregar estado de comprobante
+    tarjetas_con_estado = []
+    for t in todas_tarjetas:
+        pagada = Comprobante.objects.filter(tarjeta=t, procesado=True).exists()
+        tarjetas_con_estado.append({
+            "tarjeta": t,
+            "pagada": pagada
+        })
+
+    return render(request, "prode_app/mis_tarjetas.html", {"tarjetas": tarjetas_con_estado})
 
 
 # --------------------------
@@ -317,6 +331,18 @@ def buscar_tarjeta(request):
     return render(request, 'prode_app/buscar_tarjeta.html', context)
 
 
+def obtener_cuenta_activa():
+    cuentas = [
+        {"banco": "NARANJA X", "alias": "germanvarela85", "cbu": "4530000800010436813880", "titular": "Germán Emiliano Varela"},
+        {"banco": "SANTANDER", "alias": "deposito.segundo", "cbu": "0720000788000092345678", "titular": "Prode Cuenta 2"},
+        {"banco": "BBVA", "alias": "tercera.cuenta.prode", "cbu": "0170201870000004567891", "titular": "Prode Cuenta 3"},
+    ]
+
+    total_procesadas = Comprobante.objects.filter(procesado=True).count()
+    index = min(total_procesadas // 3, len(cuentas) - 1)
+    return cuentas[index]
+
+
 # --------------------------
 # SUBIR COMPROBANTE
 # --------------------------
@@ -325,28 +351,41 @@ def subir_comprobante(request):
     """
     Página donde el usuario elige una de sus tarjetas y sube el comprobante.
     Al enviar, guarda el Comprobante y envía un email al ADMIN_EMAIL y al usuario.
+    Cambios:
+    - Comprobante se marca automáticamente como PROCESADO=True.
+    - Se indica cuáles tarjetas ya tienen comprobante enviado.
     """
     mensaje = None
+
+    CUENTAS_DEPOSITO = [
+        {"banco": "NARANJA X", "alias": "germanvarela85", "cbu": "4530000800010436813880", "titular": "Germán Emiliano Varela"},
+        {"banco": "BBVA PRUEBA", "alias": "cuenta_prueba_1", "cbu": "0123456789012345678901", "titular": "Cuenta Prueba Uno"},
+        {"banco": "HSBC DEMO", "alias": "cuenta_prueba_2", "cbu": "1098765432109876543210", "titular": "Cuenta Prueba Dos"},
+    ]
 
     if request.method == "POST":
         form = ComprobanteForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             comprobante = form.save(commit=False)
-            # seguridad: asegurarse que la tarjeta pertenece al usuario
+
             if comprobante.tarjeta.usuario != request.user:
                 messages.error(request, "La tarjeta seleccionada no te pertenece.")
                 return redirect("subir_comprobante")
 
+            if Comprobante.objects.filter(tarjeta=comprobante.tarjeta, procesado=True).exists():
+                messages.warning(request, f"¡La tarjeta {comprobante.tarjeta.nombre_tarjeta} ya tiene comprobante enviado!")
+                return redirect("subir_comprobante")
+
             comprobante.usuario = request.user
+            comprobante.procesado = True
             comprobante.save()
 
-            # Enviar email al admin
             admin_email = getattr(settings, "ADMIN_EMAIL", None) or settings.EMAIL_HOST_USER
             subject_admin = f"Nuevo comprobante: {comprobante.tarjeta.nombre_tarjeta} - {request.user.username}"
             body_admin = (
                 f"Usuario: {request.user.username}\n"
                 f"Tarjeta: {comprobante.tarjeta.nombre_tarjeta}\n"
-                f"Fecha: {comprobante.fecha_subida}\n\n"
+                f"Fecha de subida: {comprobante.fecha_subida}\n\n"
                 f"Comentario: {comprobante.comentario or '-'}\n\n"
                 "Adjunto está el comprobante cargado."
             )
@@ -363,7 +402,6 @@ def subir_comprobante(request):
                 messages.error(request, f"El comprobante fue guardado pero hubo un error enviando el email al admin: {e}")
                 return redirect("mis_tarjetas")
 
-            # Enviar email de confirmación al usuario
             subject_user = f"Comprobante recibido: {comprobante.tarjeta.nombre_tarjeta}"
             body_user = (
                 f"Hola {request.user.username},\n\n"
@@ -378,21 +416,47 @@ def subir_comprobante(request):
             except Exception as e:
                 messages.warning(request, f"Comprobante enviado, pero no se pudo enviar el email de confirmación al usuario: {e}")
 
-            messages.success(request, "Comprobante enviado correctamente. Gracias.")
+            messages.success(request, f"Comprobante enviado correctamente para la tarjeta {comprobante.tarjeta.nombre_tarjeta}.")
             return redirect("mis_tarjetas")
+
     else:
         form = ComprobanteForm(user=request.user)
 
-    # Información de cuenta/alias para mostrar en la página
-    cuenta_info = {
-        "banco": "NARANJA X",
-        "alias": "germanvarela85",
-        "cbu": "4530000800010436813880",
-        "titular": "Germán Emiliano Varela"
-    }
+    # -------------------------------------------------------------------
+    # Determinar qué cuenta mostrar según comprobantes PROCESADOS
+    # -------------------------------------------------------------------
+    cuenta_info = CUENTAS_DEPOSITO[0]  # por defecto
+
+    try:
+        tarjetas_usuario = Tarjeta.objects.filter(usuario=request.user).select_related('fecha')
+        tarjetas_con_estado = []
+        for t in tarjetas_usuario:
+            pagada = Comprobante.objects.filter(tarjeta=t, procesado=True).exists()
+            tarjetas_con_estado.append({
+                "tarjeta": t,
+                "pagada": pagada
+            })
+
+        tarjeta_sel = tarjetas_usuario.order_by('-fecha__numero', '-numero_tarjeta').first()
+        if tarjeta_sel:
+            fecha_rel = tarjeta_sel.fecha
+            processed_count = Comprobante.objects.filter(
+                tarjeta__fecha=fecha_rel,
+                procesado=True
+            ).count()
+
+            grupo = processed_count // 3
+            if grupo < len(CUENTAS_DEPOSITO):
+                cuenta_info = CUENTAS_DEPOSITO[grupo]
+            else:
+                cuenta_info = CUENTAS_DEPOSITO[-1]
+
+    except Exception:
+        tarjetas_con_estado = []
 
     return render(request, "prode_app/subir_comprobante.html", {
         "form": form,
         "cuenta_info": cuenta_info,
-        "mensaje": mensaje,
+        "mensaje": None,
+        "tarjetas_usuario": tarjetas_con_estado,
     })
