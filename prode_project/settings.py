@@ -120,8 +120,19 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Carpeta donde collectstatic copiará todos los archivos estáticos
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_collected')
+
+# Carpeta donde tenés tus archivos estáticos durante el desarrollo
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+
+# Opcional, si usás archivos subidos por usuarios
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 
 # Default primary key field type
