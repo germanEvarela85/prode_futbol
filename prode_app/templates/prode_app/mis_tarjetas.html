@@ -3,7 +3,6 @@
 
 <h1>Mis Tarjetas</h1>
 
-<!-- Botón para crear una nueva tarjeta -->
 <p>
     <a href="{% url 'crear_tarjeta' %}" class="button">Crear Tarjeta</a>
 </p>
@@ -18,11 +17,9 @@
             Fecha: {{ t.tarjeta.fecha.numero }} — Puntos: <strong>{{ t.tarjeta.puntos }}</strong>
         </p>
 
-        <!-- Estado de comprobante -->
         {% if t.pagada %}
             <p style="color: green; font-weight: bold;">✔ Comprobante enviado</p>
         {% else %}
-            <!-- Mostrar botón para subir comprobante solo si NO existe -->
             {% if t.tarjeta.usuario == user %}
             <a href="{% url 'subir_comprobante' %}?tarjeta={{ t.tarjeta.id }}" class="button primary">
                 Subir comprobante
@@ -31,10 +28,7 @@
         {% endif %}
 
         <div style="margin-top:10px;">
-            <!-- Ver detalle -->
             <a href="{% url 'detalle_tarjeta' t.tarjeta.id %}" class="button secondary">Ver detalle</a>
-
-            <!-- Borrar solo superusuario -->
             {% if user.is_superuser %}
             <a href="{% url 'borrar_tarjeta' t.tarjeta.id %}" 
                onclick="return confirm('¿Seguro que deseas borrar esta tarjeta?');" 
@@ -42,8 +36,6 @@
                Borrar
             </a>
             {% endif %}
-
-            <!-- Ver ranking -->
             <a href="{% url 'ranking_fecha' t.tarjeta.fecha.id %}" class="button secondary">Ver Ranking</a>
         </div>
     </div>

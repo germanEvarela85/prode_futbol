@@ -3,8 +3,31 @@
 
 <h1>Subir comprobante de pago</h1>
 
-{% if mensaje %}
-    <p>{{ mensaje }}</p>
+{% if cierre_prode and cierre_prode <= now %}
+    <p style="color:red; font-weight:bold;">
+        ⛔ El periodo para subir comprobantes para esta fecha ya cerró.
+    </p>
+{% else %}
+<p id="contador_comprobante" style="color: blue; font-weight:bold;"></p>
+<script>
+    const cierreComprobante = new Date("{{ cierre_prode|date:'Y-m-d H:i:s' }}").getTime();
+    const contadorElemComprobante = document.getElementById('contador_comprobante');
+    function actualizarContadorComprobante() {
+        const now = new Date().getTime();
+        let diff = cierreComprobante - now;
+        if(diff <= 0) {
+            contadorElemComprobante.innerText = "⛔ El prode ya cerró";
+            clearInterval(intervaloComprobante);
+            return;
+        }
+        const h = Math.floor(diff / (1000*60*60));
+        const m = Math.floor((diff % (1000*60*60)) / (1000*60));
+        const s = Math.floor((diff % (1000*60)) / 1000);
+        contadorElemComprobante.innerText = `Tiempo restante para cerrar: ${h}h ${m}m ${s}s`;
+    }
+    const intervaloComprobante = setInterval(actualizarContadorComprobante, 1000);
+    actualizarContadorComprobante();
+</script>
 {% endif %}
 
 {% for message in messages %}

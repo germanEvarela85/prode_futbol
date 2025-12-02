@@ -5,6 +5,33 @@
 
 <h1>Crear Tarjeta - Fecha {{ fecha.numero }}</h1>
 
+{% if cierre_prode and cierre_prode <= now %}
+    <p style="color:red; font-weight:bold;">
+        ⛔ El tiempo para crear tarjetas para esta fecha ha finalizado.
+    </p>
+{% else %}
+
+<p id="contador_tarjeta" style="color: blue; font-weight:bold;"></p>
+<script>
+    const cierreTarjeta = new Date("{{ cierre_prode|date:'Y-m-d H:i:s' }}").getTime();
+    const contadorElemTarjeta = document.getElementById('contador_tarjeta');
+    function actualizarContadorTarjeta() {
+        const now = new Date().getTime();
+        let diff = cierreTarjeta - now;
+        if(diff <= 0) {
+            contadorElemTarjeta.innerText = "⛔ El prode ya cerró";
+            clearInterval(intervaloTarjeta);
+            return;
+        }
+        const h = Math.floor(diff / (1000*60*60));
+        const m = Math.floor((diff % (1000*60*60)) / (1000*60));
+        const s = Math.floor((diff % (1000*60)) / 1000);
+        contadorElemTarjeta.innerText = `Tiempo restante para cerrar: ${h}h ${m}m ${s}s`;
+    }
+    const intervaloTarjeta = setInterval(actualizarContadorTarjeta, 1000);
+    actualizarContadorTarjeta();
+</script>
+
 <form method="POST">
     {% csrf_token %}
 
@@ -31,21 +58,16 @@
                 {% for partido in partidos %}
                 <tr>
                     <td class="team-cell">
-
                         {% if partido.local.escudo %}
                             <img src="{{ partido.local.escudo.url }}" alt="{{ partido.local.nombre }}" width="30" height="30">
                         {% endif %}
                         {{ partido.local.nombre }}
-
                         &nbsp;vs&nbsp;
-
                         {% if partido.visitante.escudo %}
                             <img src="{{ partido.visitante.escudo.url }}" alt="{{ partido.visitante.nombre }}" width="30" height="30">
                         {% endif %}
                         {{ partido.visitante.nombre }}
-
                     </td>
-
                     <td>
                         <input type="radio" name="opcion1_{{ partido.id }}" value="1" required>
                         {{ partido.local.nombre }}
@@ -58,7 +80,6 @@
                         <input type="radio" name="opcion1_{{ partido.id }}" value="3" required>
                         {{ partido.visitante.nombre }}
                     </td>
-
                     <td>
                         <select name="opcion2_{{ partido.id }}">
                             <option value="">---</option>
@@ -81,5 +102,7 @@
 <p style="color: blue; margin-top:15px;">
     ⚠ Después de crear la tarjeta, serás redirigido automáticamente a subir el comprobante de pago para activarla.
 </p>
+
+{% endif %}
 
 {% endblock %}

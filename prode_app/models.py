@@ -1,7 +1,13 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
 
+
+# -------------------------------
+# USUARIO
+# -------------------------------
 
 class Usuario(AbstractUser):
     telefono = models.CharField(max_length=20, blank=True, null=True)
@@ -10,6 +16,10 @@ class Usuario(AbstractUser):
     def __str__(self):
         return self.username
 
+
+# -------------------------------
+# EQUIPOS
+# -------------------------------
 
 class Equipo(models.Model):
     nombre = models.CharField(max_length=50)
@@ -20,15 +30,98 @@ class Equipo(models.Model):
 
 
 # -------------------------------
-# FECHAS
+# FECHA
 # -------------------------------
 
 class Fecha(models.Model):
     numero = models.PositiveIntegerField()
     descripcion = models.CharField(max_length=100, blank=True, null=True)
 
+    # Hora real del primer partido de la fecha (manual)
+    inicio_fecha = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Hora del primer partido. Se usa para cerrar creación y pago de tarjetas."
+    )
+
+    # Hora de cierre del prode (por ej. 2 horas antes del inicio)
+    cierre_prode = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Límite para crear y pagar tarjetas."
+    )
+
     def __str__(self):
         return f"Fecha {self.numero}"
+
+    # -------------------------------
+    # MÉTODOS DE CONTROL
+    # -------------------------------
+
+    @property
+    def hora_cierre(self):
+        """
+        Hora límite para crear y pagar tarjetas.
+        Si cierre_prode está definido se usa, si no se calcula 2h antes del primer partido.
+        """
+        if self.cierre_prode:
+            return self.cierre_prode
+        if self.inicio_fecha:
+            return self.inicio_fecha - timedelta(hours=2)
+        return None
+
+    @property
+    def tiempo_restante(self):
+        """
+        Segundos que quedan hasta el cierre.
+        """
+        cierre = self.hora_cierre
+        if cierre:
+            return max(0, int((cierre - timezone.now()).total_seconds()))
+        return None
+
+    @property
+    def esta_cerrada(self):
+        """
+        True si ya pasó la hora de cierre.
+        """
+        cierre = self.hora_cierre
+        if cierre:
+            return timezone.now() >= cierre
+        return False
+
+        
+    # -----------------------------------
+    # GENERAR AUTOMÁTICAMENTE EL CIERRE
+    # -----------------------------------
+    def save(self, *args, **kwargs):
+        if self.inicio_fecha:
+            # Calculamos automáticamente el cierre: 2 horas antes
+            self.cierre_prode = self.inicio_fecha - timedelta(hours=2)
+        super().save(*args, **kwargs)
+
+    # -----------------------------------
+    # MÉTODOS DE CONTROL
+    # -----------------------------------
+
+    @property
+    def esta_cerrada(self):
+        """Retorna True si ya pasó la hora de cierre."""
+        if not self.cierre_prode:
+            return False
+        return timezone.now() >= self.cierre_prode
+
+    @property
+    def ya_empezo(self):
+        """Retorna True si ya arrancó el primer partido."""
+        if not self.inicio_fecha:
+            return False
+        return timezone.now() >= self.inicio_fecha
+
+    @property
+    def queda_tiempo(self):
+        """True si aún se puede crear y pagar tarjetas."""
+        return not self.esta_cerrada
 
 
 # -------------------------------
@@ -46,7 +139,6 @@ class Partido(models.Model):
     local = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name="partidos_local")
     visitante = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name="partidos_visitante")
 
-    # Resultado real del partido (1=local,2=empate,3=visitante)
     resultado_real = models.IntegerField(choices=OPCIONES, blank=True, null=True)
 
     def __str__(self):
@@ -60,9 +152,8 @@ class Partido(models.Model):
 class Tarjeta(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     fecha = models.ForeignKey(Fecha, on_delete=models.CASCADE)
-    numero_tarjeta = models.PositiveIntegerField(default=1)  # Tarjeta 1, 2, 3, etc.
+    numero_tarjeta = models.PositiveIntegerField(default=1)
 
-    # Puntos calculados según resultados reales
     puntos = models.IntegerField(default=0)
 
     def __str__(self):
@@ -74,7 +165,7 @@ class Tarjeta(models.Model):
 
 
 # -------------------------------
-# PRONÓSTICOS
+# PRONOSTICOS
 # -------------------------------
 
 class Pronostico(models.Model):
@@ -94,7 +185,7 @@ class Pronostico(models.Model):
 
 
 # -------------------------------
-# TRANSFERENCIAS / COMPROBANTES
+# COMPROBANTES
 # -------------------------------
 
 class Transferencia(models.Model):
@@ -107,7 +198,7 @@ class Transferencia(models.Model):
 
 
 class Comprobante(models.Model):
-    tarjeta = models.ForeignKey('Tarjeta', on_delete=models.CASCADE)
+    tarjeta = models.ForeignKey(Tarjeta, on_delete=models.CASCADE)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     archivo = models.FileField(upload_to="comprobantes/")
     comentario = models.CharField(max_length=200, blank=True, null=True)
@@ -116,3 +207,4 @@ class Comprobante(models.Model):
 
     def __str__(self):
         return f"Comprobante {self.id} - {self.tarjeta.nombre_tarjeta} - {self.usuario.username}"
+

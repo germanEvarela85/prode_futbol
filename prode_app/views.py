@@ -1,11 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Fecha, Partido, Tarjeta, Pronostico, Comprobante
-from .forms import TarjetaForm, RegistroForm, ComprobanteForm
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.contrib.auth import login
-from django.db.models import Q, Case, When, Value, IntegerField
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -14,6 +10,30 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMessage
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+
+from .models import Fecha, Partido, Tarjeta, Pronostico, Comprobante
+from .forms import TarjetaForm, RegistroForm, ComprobanteForm
+
+
+# --------------------------
+# Helper: calcular cierre del prode para una Fecha
+# --------------------------
+def calcular_cierre(fecha_obj: Fecha):
+    """
+    Prioridad:
+    1) si fecha_obj.cierre_prode está definido -> usarlo
+    2) si no y fecha_obj.inicio_fecha está definido -> usar inicio_fecha - 2 horas
+    3) sino -> None (sin cierre definido)
+    """
+    if fecha_obj is None:
+        return None
+    if fecha_obj.cierre_prode:
+        return fecha_obj.cierre_prode
+    if fecha_obj.inicio_fecha:
+        return fecha_obj.inicio_fecha - timedelta(hours=2)
+    return None
 
 
 # --------------------------
@@ -27,7 +47,7 @@ def registro(request):
 
         if form.is_valid():
             usuario = form.save(commit=False)
-            usuario.is_active = False  # desactiva hasta confirmar email
+            usuario.is_active = False  # desactivar hasta confirmar email
             usuario.save()
 
             # Enviar email de activación
@@ -44,7 +64,6 @@ def registro(request):
             email.send()
 
             enviado_email = True
-
     else:
         form = RegistroForm()
 
@@ -79,7 +98,11 @@ def activar_cuenta(request, uidb64, token):
 @login_required
 def post_login(request):
     if request.user.is_superuser:
-        return redirect("cargar_resultados", fecha_id=1)
+        # el id/numero de fecha por defecto lo podés cambiar
+        primera_fecha = Fecha.objects.order_by("numero").first()
+        if primera_fecha:
+            return redirect("cargar_resultados", fecha_id=primera_fecha.id)
+        return redirect("mis_tarjetas")
     else:
         return redirect("mis_tarjetas")
 
@@ -89,6 +112,11 @@ def post_login(request):
 # --------------------------
 @login_required
 def crear_tarjeta(request, fecha_id=None):
+    """
+    Crear tarjeta para una fecha.
+    Bloquea creación si pasó el cierre (cierre_prode o inicio_fecha - 2h).
+    Devuelve al template primer_partido, cierre_prode y tiempo_restante (segundos).
+    """
     if fecha_id:
         fecha = get_object_or_404(Fecha, id=fecha_id)
     else:
@@ -100,6 +128,25 @@ def crear_tarjeta(request, fecha_id=None):
         })
 
     partidos = Partido.objects.filter(fecha=fecha)
+
+    # calcular cierre efectivo
+    cierre = calcular_cierre(fecha)
+    ahora = timezone.now()
+    tiempo_restante = None
+    if cierre:
+        tiempo_restante = int((cierre - ahora).total_seconds())
+
+    # bloqueo si ya cerró
+    if cierre and ahora >= cierre:
+        return render(request, "prode_app/crear_tarjeta.html", {
+            "mensaje": "El tiempo para crear o pagar tarjetas para esta fecha ha finalizado.",
+            "fecha": fecha,
+            "partidos": partidos,
+            "tarjeta_form": TarjetaForm(),
+            "primer_partido": fecha.inicio_fecha,
+            "cierre_prode": cierre,
+            "tiempo_restante": 0
+        })
 
     if request.method == "POST":
         tarjeta_form = TarjetaForm(request.POST)
@@ -116,7 +163,10 @@ def crear_tarjeta(request, fecha_id=None):
                 return render(request, "prode_app/crear_tarjeta.html", {
                     "fecha": fecha,
                     "partidos": partidos,
-                    "tarjeta_form": tarjeta_form
+                    "tarjeta_form": tarjeta_form,
+                    "primer_partido": fecha.inicio_fecha,
+                    "cierre_prode": cierre,
+                    "tiempo_restante": tiempo_restante
                 })
 
             if dobles > 1:
@@ -124,9 +174,13 @@ def crear_tarjeta(request, fecha_id=None):
                 return render(request, "prode_app/crear_tarjeta.html", {
                     "fecha": fecha,
                     "partidos": partidos,
-                    "tarjeta_form": tarjeta_form
+                    "tarjeta_form": tarjeta_form,
+                    "primer_partido": fecha.inicio_fecha,
+                    "cierre_prode": cierre,
+                    "tiempo_restante": tiempo_restante
                 })
 
+            # guardar tarjeta (misma lógica)
             tarjeta = tarjeta_form.save(commit=False)
             tarjeta.usuario = request.user
             tarjeta.fecha = fecha
@@ -146,7 +200,7 @@ def crear_tarjeta(request, fecha_id=None):
                     )
 
             messages.info(request, "Tarjeta creada. Ahora debes subir el comprobante para activarla.")
-            return redirect("subir_comprobante")  # redirige directamente al upload
+            return redirect("subir_comprobante")
         else:
             messages.error(request, "Hay errores en el formulario.")
     else:
@@ -155,10 +209,12 @@ def crear_tarjeta(request, fecha_id=None):
     context = {
         "fecha": fecha,
         "partidos": partidos,
-        "tarjeta_form": tarjeta_form
+        "tarjeta_form": tarjeta_form,
+        "primer_partido": fecha.inicio_fecha,
+        "cierre_prode": cierre,
+        "tiempo_restante": tiempo_restante
     }
     return render(request, "prode_app/crear_tarjeta.html", context)
-
 
 # --------------------------
 # MIS TARJETAS
@@ -169,28 +225,37 @@ def mis_tarjetas(request):
     Mostrar todas las tarjetas de todos los usuarios.
     - Primero las tarjetas del usuario actual (más recientes primero).
     - Luego las tarjetas del resto de los usuarios.
-    - Solo el superusuario puede borrar tarjetas.
-    - Se indican cuáles tienen comprobante enviado.
+    - Si la Fecha tiene cierre, se intenta ocultar tarjetas creadas después del cierre (si existe created_at).
+    - Se indica si cada tarjeta está pagada (comprobante procesado).
     """
-    # Tarjetas del usuario actual
-    tarjetas_mias = Tarjeta.objects.filter(usuario=request.user).select_related('usuario', 'fecha').order_by('-fecha__numero','-numero_tarjeta')
-    
-    # Tarjetas de otros usuarios
-    tarjetas_otros = Tarjeta.objects.exclude(usuario=request.user).select_related('usuario', 'fecha').order_by('-fecha__numero','-numero_tarjeta')
-    
-    # Combinar listas manteniendo la separación
-    todas_tarjetas = list(tarjetas_mias) + list(tarjetas_otros)
-    
-    # Agregar estado de comprobante
+    # traer todas las tarjetas ordenadas por fecha y numero (lo mismo que tenías)
+    todas_tarjetas_raw = Tarjeta.objects.select_related('usuario', 'fecha').order_by('-fecha__numero', '-numero_tarjeta')
+
     tarjetas_con_estado = []
-    for t in todas_tarjetas:
+    ahora = timezone.now()
+    for t in todas_tarjetas_raw:
+        # intentar filtrar según cierre si existe created_at en el modelo Tarjeta
+        cierre = calcular_cierre(t.fecha)
+        if cierre and hasattr(t, "created_at"):
+            try:
+                # si la tarjeta fue creada después del cierre, la ignoramos
+                if t.created_at and t.created_at > cierre:
+                    continue
+            except Exception:
+                pass  # si hay problemas con el formato, ignoramos la restricción
+        # comprobar si está pagada
         pagada = Comprobante.objects.filter(tarjeta=t, procesado=True).exists()
         tarjetas_con_estado.append({
             "tarjeta": t,
             "pagada": pagada
         })
 
-    return render(request, "prode_app/mis_tarjetas.html", {"tarjetas": tarjetas_con_estado})
+    # reordenar para poner primero las mias
+    tarjetas_mias = [x for x in tarjetas_con_estado if x["tarjeta"].usuario == request.user]
+    tarjetas_otros = [x for x in tarjetas_con_estado if x["tarjeta"].usuario != request.user]
+    tarjetas_final = tarjetas_mias + tarjetas_otros
+
+    return render(request, "prode_app/mis_tarjetas.html", {"tarjetas": tarjetas_final})
 
 
 # --------------------------
@@ -199,7 +264,7 @@ def mis_tarjetas(request):
 @login_required
 def detalle_tarjeta(request, tarjeta_id):
     tarjeta = get_object_or_404(Tarjeta, pk=tarjeta_id)
-    pronosticos = Pronostico.objects.filter(tarjeta=tarjeta).select_related('partido__fecha','partido__local','partido__visitante')
+    pronosticos = Pronostico.objects.filter(tarjeta=tarjeta).select_related('partido__fecha', 'partido__local', 'partido__visitante')
 
     detalles = []
     for p in pronosticos:
@@ -221,25 +286,25 @@ def detalle_tarjeta(request, tarjeta_id):
 
 
 # --------------------------
-# BORRAR TARJETA
+# BORRAR TARJETA (solo superuser)
 # --------------------------
 @login_required
 def borrar_tarjeta(request, tarjeta_id):
     if not request.user.is_superuser:
         raise PermissionDenied("No tienes permiso para borrar tarjetas.")
-    
+
     tarjeta = get_object_or_404(Tarjeta, id=tarjeta_id)
     tarjeta.delete()
     return redirect("mis_tarjetas")
 
 
 # --------------------------
-# CARGAR RESULTADOS
+# CARGAR RESULTADOS (solo admin)
 # --------------------------
 @login_required
 def cargar_resultados(request, fecha_id):
     if not request.user.is_superuser:
-        raise PermissionDenied("No tienes permiso para cargar resultados.")
+        raise PermissionDenied("No tenés permiso para esto.")
 
     fecha = get_object_or_404(Fecha, id=fecha_id)
     partidos = Partido.objects.filter(fecha=fecha)
@@ -251,8 +316,14 @@ def cargar_resultados(request, fecha_id):
                 partido.resultado_real = int(valor)
                 partido.save()
 
+        # Calcular puntos SOLO para tarjetas pagadas (comprobante procesado)
         tarjetas = Tarjeta.objects.filter(fecha=fecha)
         for tarjeta in tarjetas:
+            if not Comprobante.objects.filter(tarjeta=tarjeta, procesado=True).exists():
+                tarjeta.puntos = 0
+                tarjeta.save()
+                continue
+
             puntos = 0
             pronosticos = Pronostico.objects.filter(tarjeta=tarjeta)
             for p in pronosticos:
@@ -271,7 +342,7 @@ def cargar_resultados(request, fecha_id):
 
 
 # --------------------------
-# RANKING
+# RANKING (solo tarjetas pagadas)
 # --------------------------
 @login_required
 def ranking_fecha(request, fecha_id):
@@ -281,6 +352,8 @@ def ranking_fecha(request, fecha_id):
         Tarjeta.objects
         .filter(fecha=fecha)
         .select_related("usuario")
+        .filter(comprobante__procesado=True)
+        .distinct()
         .order_by("-puntos", "numero_tarjeta")
     )
 
@@ -331,6 +404,9 @@ def buscar_tarjeta(request):
     return render(request, 'prode_app/buscar_tarjeta.html', context)
 
 
+# --------------------------
+# Rotación de cuentas según comprobantes procesados
+# --------------------------
 def obtener_cuenta_activa():
     cuentas = [
         {"banco": "NARANJA X", "alias": "germanvarela85", "cbu": "4530000800010436813880", "titular": "Germán Emiliano Varela"},
@@ -349,18 +425,34 @@ def obtener_cuenta_activa():
 @login_required
 def subir_comprobante(request):
     """
-    Página donde el usuario elige una de sus tarjetas y sube el comprobante.
-    Al enviar, guarda el Comprobante y envía un email al ADMIN_EMAIL y al usuario.
-    Cambios:
-    - Comprobante se marca automáticamente como PROCESADO=True.
-    - Se indica cuáles tarjetas ya tienen comprobante enviado.
+    Subir comprobante:
+    - comprueba bloqueo según cierre de la tarjeta seleccionada
+    - marca comprobante como procesado=True automáticamente
+    - evita subir si ya existe comprobante procesado para esa tarjeta
+    - pasa al template lista de tarjetas del usuario con flag 'pagada'
+    - pasa primer_partido y cierre_prode para mostrar en UI
     """
     mensaje = None
 
     CUENTAS_DEPOSITO = [
-        {"banco": "NARANJA X", "alias": "germanvarela85", "cbu": "4530000800010436813880", "titular": "Germán Emiliano Varela"},
-        {"banco": "BBVA PRUEBA", "alias": "cuenta_prueba_1", "cbu": "0123456789012345678901", "titular": "Cuenta Prueba Uno"},
-        {"banco": "HSBC DEMO", "alias": "cuenta_prueba_2", "cbu": "1098765432109876543210", "titular": "Cuenta Prueba Dos"},
+        {
+            "banco": "NARANJA X",
+            "alias": "germanvarela85",
+            "cbu": "4530000800010436813880",
+            "titular": "Germán Emiliano Varela"
+        },
+        {
+            "banco": "BBVA PRUEBA",
+            "alias": "cuenta_prueba_1",
+            "cbu": "0123456789012345678901",
+            "titular": "Cuenta Prueba Uno"
+        },
+        {
+            "banco": "HSBC DEMO",
+            "alias": "cuenta_prueba_2",
+            "cbu": "1098765432109876543210",
+            "titular": "Cuenta Prueba Dos"
+        },
     ]
 
     if request.method == "POST":
@@ -368,19 +460,28 @@ def subir_comprobante(request):
         if form.is_valid():
             comprobante = form.save(commit=False)
 
+            # seguridad: la tarjeta debe pertenecer al usuario
             if comprobante.tarjeta.usuario != request.user:
                 messages.error(request, "La tarjeta seleccionada no te pertenece.")
                 return redirect("subir_comprobante")
 
+            # bloqueo por cierre según la fecha de la tarjeta
+            cierre = calcular_cierre(comprobante.tarjeta.fecha)
+            if cierre and timezone.now() >= cierre:
+                messages.error(request, "El periodo para subir comprobantes para esta fecha ya cerró.")
+                return redirect("mis_tarjetas")
+
+            # evitar segundo comprobante pagado
             if Comprobante.objects.filter(tarjeta=comprobante.tarjeta, procesado=True).exists():
                 messages.warning(request, f"¡La tarjeta {comprobante.tarjeta.nombre_tarjeta} ya tiene comprobante enviado!")
                 return redirect("subir_comprobante")
 
             comprobante.usuario = request.user
-            comprobante.procesado = True
+            comprobante.procesado = True  # marcar automáticamente
             comprobante.save()
 
-            admin_email = getattr(settings, "ADMIN_EMAIL", None) or settings.EMAIL_HOST_USER
+            # enviar email al admin
+            admin_email = getattr(settings, "ADMIN_EMAIL", None) or settings.EMAIL_HOST
             subject_admin = f"Nuevo comprobante: {comprobante.tarjeta.nombre_tarjeta} - {request.user.username}"
             body_admin = (
                 f"Usuario: {request.user.username}\n"
@@ -402,6 +503,7 @@ def subir_comprobante(request):
                 messages.error(request, f"El comprobante fue guardado pero hubo un error enviando el email al admin: {e}")
                 return redirect("mis_tarjetas")
 
+            # email al usuario
             subject_user = f"Comprobante recibido: {comprobante.tarjeta.nombre_tarjeta}"
             body_user = (
                 f"Hola {request.user.username},\n\n"
@@ -423,40 +525,40 @@ def subir_comprobante(request):
         form = ComprobanteForm(user=request.user)
 
     # -------------------------------------------------------------------
-    # Determinar qué cuenta mostrar según comprobantes PROCESADOS
+    # Preparar datos para mostrar en el template
     # -------------------------------------------------------------------
-    cuenta_info = CUENTAS_DEPOSITO[0]  # por defecto
+    cuenta_info = CUENTAS_DEPOSITO[0]
+    tarjetas_usuario = Tarjeta.objects.filter(usuario=request.user).select_related('fecha')
+    tarjetas_con_estado = []
+    for t in tarjetas_usuario:
+        pagada = Comprobante.objects.filter(tarjeta=t, procesado=True).exists()
+        tarjetas_con_estado.append({
+            "tarjeta": t,
+            "pagada": pagada
+        })
 
-    try:
-        tarjetas_usuario = Tarjeta.objects.filter(usuario=request.user).select_related('fecha')
-        tarjetas_con_estado = []
-        for t in tarjetas_usuario:
-            pagada = Comprobante.objects.filter(tarjeta=t, procesado=True).exists()
-            tarjetas_con_estado.append({
-                "tarjeta": t,
-                "pagada": pagada
-            })
+    # determinar cuenta activa usando comprobantes PROCESADOS de la fecha seleccionada (si hay)
+    tarjeta_sel = tarjetas_usuario.order_by('-fecha__numero', '-numero_tarjeta').first()
+    if tarjeta_sel:
+        fecha_rel = tarjeta_sel.fecha
+        processed_count = Comprobante.objects.filter(tarjeta__fecha=fecha_rel, procesado=True).count()
+        grupo = processed_count // 3
+        if grupo < len(CUENTAS_DEPOSITO):
+            cuenta_info = CUENTAS_DEPOSITO[grupo]
+        else:
+            cuenta_info = CUENTAS_DEPOSITO[-1]
 
-        tarjeta_sel = tarjetas_usuario.order_by('-fecha__numero', '-numero_tarjeta').first()
-        if tarjeta_sel:
-            fecha_rel = tarjeta_sel.fecha
-            processed_count = Comprobante.objects.filter(
-                tarjeta__fecha=fecha_rel,
-                procesado=True
-            ).count()
-
-            grupo = processed_count // 3
-            if grupo < len(CUENTAS_DEPOSITO):
-                cuenta_info = CUENTAS_DEPOSITO[grupo]
-            else:
-                cuenta_info = CUENTAS_DEPOSITO[-1]
-
-    except Exception:
-        tarjetas_con_estado = []
+    primer_partido = None
+    cierre_fecha = None
+    if tarjeta_sel:
+        primer_partido = tarjeta_sel.fecha.inicio_fecha
+        cierre_fecha = calcular_cierre(tarjeta_sel.fecha)
 
     return render(request, "prode_app/subir_comprobante.html", {
         "form": form,
         "cuenta_info": cuenta_info,
         "mensaje": None,
         "tarjetas_usuario": tarjetas_con_estado,
+        "primer_partido": primer_partido,
+        "cierre_prode": cierre_fecha,
     })
