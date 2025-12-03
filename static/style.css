@@ -334,3 +334,38 @@ footer {
     .card-list { grid-template-columns: 1fr; }
     .radio-group { flex-direction: column; }
 }
+
+/* ------------------------------
+   Estilos responsivos para móviles
+------------------------------ */
+@media (max-width: 768px) {
+    body {
+        font-size: 18px; /* Texto general más grande */
+    }
+
+    h1, h2, h3 {
+        font-size: 24px; /* Ajusta los títulos */
+    }
+
+    p {
+        font-size: 16px; /* Ajusta los párrafos */
+    }
+
+    button, input[type="submit"] {
+        font-size: 16px; /* Botones más grandes */
+        padding: 12px 20px;
+    }
+
+    .container, .mi-contenedor, .card {
+        padding: 15px; /* Más espacio en contenedores */
+        margin: 10px; /* Ajusta márgenes para móviles */
+    }
+
+    nav {
+        font-size: 16px; /* Barra de navegación más legible */
+    }
+
+    table {
+        font-size: 14px; /* Tablas más fáciles de leer */
+    }
+}
