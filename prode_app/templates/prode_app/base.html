@@ -12,7 +12,7 @@
 
 {% if user.is_authenticated %}
     <header>
-        <h1>PRODE Fútbol</h1>
+        <h1>PRODE FARINA</h1>
         <p>
             Hola, {{ user.username }} |
             <form method="post" action="{% url 'logout' %}" style="display:inline;">
@@ -50,10 +50,11 @@
     </header>
 
     <nav>
+        <a href="{% url 'reglamento' %}" class="button secondary">Reglamento</a>
         <a href="{% url 'mis_tarjetas' %}" class="button secondary">Mis Tarjetas</a>
         <a href="{% url 'crear_tarjeta' %}" class="button">Crear Tarjeta</a>
         <a href="{% url 'ranking_fecha' 1 %}" class="button secondary">Ranking</a>
-        <a href="{% url 'subir_comprobante' %}">Subir comprobante</a>
+        <a href="{% url 'subir_comprobante' %}" class="button secondary">Subir comprobante</a>
 
         {% if user.is_superuser %}
             <a href="{% url 'cargar_resultados' 1 %}" class="button boton-rojo">Cargar Resultados</a>
@@ -76,6 +77,19 @@
 
 {% block content %}
 {% endblock %}
+
+<hr style="margin-top:40px;">
+
+<footer style="text-align:center; font-size:0.9em; color:gray; margin-bottom:10px;">
+    📧 Contacto y soporte:
+    <a href="mailto:prodefarina26@gmail.com" style="color:gray;">
+        prodefarina26@gmail.com
+    </a>
+    <br>
+    <span>
+        Para soporte técnico, consultas, pagos y cobro de premios
+    </span>
+</footer>
 
 </div>
 

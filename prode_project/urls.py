@@ -89,6 +89,7 @@ urlpatterns = [
     # ---------------------------------------------------------
     # TARJETAS / FECHAS
     # ---------------------------------------------------------
+    path("reglamento/", login_required(views.reglamento), name="reglamento"),
     path("crear_tarjeta/", login_required(views.crear_tarjeta), name="crear_tarjeta"),
     path("mis_tarjetas/", login_required(views.mis_tarjetas), name="mis_tarjetas"),
     path("tarjeta/<int:tarjeta_id>/", login_required(views.detalle_tarjeta), name="detalle_tarjeta"),

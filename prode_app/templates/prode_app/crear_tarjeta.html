@@ -5,29 +5,70 @@
 
 <h1>Crear Tarjeta - Fecha {{ fecha.numero }}</h1>
 
+<!-- ===== MENSAJE DE ATENCIÓN ===== -->
+<div style="
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 14px 18px;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-weight: bold;
+">
+    ⚠️ Atención!  
+    Deben marcar una opción en cada partido y una opción doble en 
+    <u>un sólo partido</u> 
+    (<strong>diferente</strong> a la opción principal que marcaron).
+</div>
+
+<!-- ===== MENSAJES DE ERROR / INFO ===== -->
+{% if messages %}
+    <div style="margin-bottom:15px;">
+        {% for message in messages %}
+            {% if message.tags == 'error' %}
+                <p style="color:red; font-weight:bold;">
+                    {{ message }}
+                </p>
+            {% else %}
+                <p style="color:green; font-weight:bold;">
+                    {{ message }}
+                </p>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}
+
 {% if cierre_prode and cierre_prode <= now %}
     <p style="color:red; font-weight:bold;">
         ⛔ El tiempo para crear tarjetas para esta fecha ha finalizado.
     </p>
 {% else %}
 
-<p id="contador_tarjeta" style="color: blue; font-weight:bold;"></p>
+<!-- ===== CONTADOR ===== -->
+<p id="contador_tarjeta" style="color:red; font-weight:bold;"></p>
+
 <script>
     const cierreTarjeta = new Date("{{ cierre_prode|date:'Y-m-d H:i:s' }}").getTime();
     const contadorElemTarjeta = document.getElementById('contador_tarjeta');
+
     function actualizarContadorTarjeta() {
         const now = new Date().getTime();
         let diff = cierreTarjeta - now;
-        if(diff <= 0) {
+
+        if (diff <= 0) {
             contadorElemTarjeta.innerText = "⛔ El prode ya cerró";
             clearInterval(intervaloTarjeta);
             return;
         }
-        const h = Math.floor(diff / (1000*60*60));
-        const m = Math.floor((diff % (1000*60*60)) / (1000*60));
-        const s = Math.floor((diff % (1000*60)) / 1000);
-        contadorElemTarjeta.innerText = `Tiempo restante para cerrar: ${h}h ${m}m ${s}s`;
+
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+        contadorElemTarjeta.innerText =
+            `Tiempo restante para cerrar: ${h}h ${m}m ${s}s`;
     }
+
     const intervaloTarjeta = setInterval(actualizarContadorTarjeta, 1000);
     actualizarContadorTarjeta();
 </script>
@@ -35,6 +76,7 @@
 <form method="POST">
     {% csrf_token %}
 
+    <!-- ===== INFO TARJETA ===== -->
     <div class="card" style="padding:20px; margin-bottom:20px;">
         <h3>Información de la tarjeta</h3>
         <div class="tarjeta-form">
@@ -42,8 +84,10 @@
         </div>
     </div>
 
+    <!-- ===== PARTIDOS ===== -->
     <div class="card">
         <h3>Pronósticos de los partidos</h3>
+
         <table class="table">
             <thead>
                 <tr>
@@ -59,27 +103,40 @@
                 <tr>
                     <td class="team-cell">
                         {% if partido.local.escudo %}
-                            <img src="{{ partido.local.escudo.url }}" alt="{{ partido.local.nombre }}" width="30" height="30">
+                            <img src="{{ partido.local.escudo.url }}" width="30" height="30">
                         {% endif %}
                         {{ partido.local.nombre }}
                         &nbsp;vs&nbsp;
                         {% if partido.visitante.escudo %}
-                            <img src="{{ partido.visitante.escudo.url }}" alt="{{ partido.visitante.nombre }}" width="30" height="30">
+                            <img src="{{ partido.visitante.escudo.url }}" width="30" height="30">
                         {% endif %}
                         {{ partido.visitante.nombre }}
                     </td>
+
                     <td>
-                        <input type="radio" name="opcion1_{{ partido.id }}" value="1" required>
+                        <input type="radio"
+                               name="opcion1_{{ partido.id }}"
+                               value="1"
+                               required>
                         {{ partido.local.nombre }}
                     </td>
+
                     <td>
-                        <input type="radio" name="opcion1_{{ partido.id }}" value="2" required>
+                        <input type="radio"
+                               name="opcion1_{{ partido.id }}"
+                               value="2"
+                               required>
                         Empate
                     </td>
+
                     <td>
-                        <input type="radio" name="opcion1_{{ partido.id }}" value="3" required>
+                        <input type="radio"
+                               name="opcion1_{{ partido.id }}"
+                               value="3"
+                               required>
                         {{ partido.visitante.nombre }}
                     </td>
+
                     <td>
                         <select name="opcion2_{{ partido.id }}">
                             <option value="">---</option>
@@ -95,12 +152,15 @@
     </div>
 
     <div style="margin-top:20px;">
-        <button type="submit" class="button">Guardar Tarjeta</button>
+        <button type="submit" class="button">
+            Guardar Tarjeta
+        </button>
     </div>
 </form>
 
-<p style="color: blue; margin-top:15px;">
-    ⚠ Después de crear la tarjeta, serás redirigido automáticamente a subir el comprobante de pago para activarla.
+<p style="color:red; margin-top:15px; font-weight:bold;">
+    ⚠ Después de crear la tarjeta, serás redirigido automáticamente a subir
+    el comprobante de pago para activarla.
 </p>
 
 {% endif %}

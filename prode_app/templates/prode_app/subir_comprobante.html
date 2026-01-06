@@ -3,70 +3,80 @@
 
 <h1>Subir comprobante de pago</h1>
 
-{% if cierre_prode and cierre_prode <= now %}
-    <p style="color:red; font-weight:bold;">
-        ⛔ El periodo para subir comprobantes para esta fecha ya cerró.
+<div class="card">
+
+    {% if cierre_prode and cierre_prode <= now %}
+        <p style="color:red; font-weight:bold;">
+            ⛔ El periodo para subir comprobantes para esta fecha ya cerró.
+        </p>
+    {% else %}
+        <p id="contador_comprobante" style="color: blue; font-weight:bold;"></p>
+        <script>
+            const cierreComprobante = new Date("{{ cierre_prode|date:'Y-m-d H:i:s' }}").getTime();
+            const contadorElemComprobante = document.getElementById('contador_comprobante');
+            function actualizarContadorComprobante() {
+                const now = new Date().getTime();
+                let diff = cierreComprobante - now;
+                if(diff <= 0) {
+                    contadorElemComprobante.innerText = "⛔ El prode ya cerró";
+                    clearInterval(intervaloComprobante);
+                    return;
+                }
+                const h = Math.floor(diff / (1000*60*60));
+                const m = Math.floor((diff % (1000*60*60)) / (1000*60));
+                const s = Math.floor((diff % (1000*60)) / 1000);
+                contadorElemComprobante.innerText =
+                    `Tiempo restante para cerrar: ${h}h ${m}m ${s}s`;
+            }
+            const intervaloComprobante = setInterval(actualizarContadorComprobante, 1000);
+            actualizarContadorComprobante();
+        </script>
+    {% endif %}
+
+    {% for message in messages %}
+        <div class="alert success">{{ message }}</div>
+    {% endfor %}
+
+    <p><strong>Realizá la transferencia a:</strong></p>
+    <ul>
+        <li><strong>Banco:</strong> {{ cuenta_info.banco }}</li>
+        <li><strong>Alias:</strong> {{ cuenta_info.alias }}</li>
+        <li><strong>CBU:</strong> {{ cuenta_info.cbu }}</li>
+        <li><strong>Titular:</strong> {{ cuenta_info.titular }}</li>
+    </ul>
+
+    <p style="margin-top:10px;">
+        ⚠️ Solo aparecen tus tarjetas disponibles para seleccionar.
     </p>
-{% else %}
-<p id="contador_comprobante" style="color: blue; font-weight:bold;"></p>
-<script>
-    const cierreComprobante = new Date("{{ cierre_prode|date:'Y-m-d H:i:s' }}").getTime();
-    const contadorElemComprobante = document.getElementById('contador_comprobante');
-    function actualizarContadorComprobante() {
-        const now = new Date().getTime();
-        let diff = cierreComprobante - now;
-        if(diff <= 0) {
-            contadorElemComprobante.innerText = "⛔ El prode ya cerró";
-            clearInterval(intervaloComprobante);
-            return;
-        }
-        const h = Math.floor(diff / (1000*60*60));
-        const m = Math.floor((diff % (1000*60*60)) / (1000*60));
-        const s = Math.floor((diff % (1000*60)) / 1000);
-        contadorElemComprobante.innerText = `Tiempo restante para cerrar: ${h}h ${m}m ${s}s`;
-    }
-    const intervaloComprobante = setInterval(actualizarContadorComprobante, 1000);
-    actualizarContadorComprobante();
-</script>
-{% endif %}
 
-{% for message in messages %}
-    <p>{{ message }}</p>
-{% endfor %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
 
-<p>Realizá la transferencia a:</p>
-<ul>
-    <li><strong>Banco:</strong> {{ cuenta_info.banco }}</li>
-    <li><strong>Alias:</strong> {{ cuenta_info.alias }}</li>
-    <li><strong>CBU:</strong> {{ cuenta_info.cbu }}</li>
-    <li><strong>Titular:</strong> {{ cuenta_info.titular }}</li>
-</ul>
+        <label for="id_tarjeta">Seleccioná tarjeta:</label>
+        <select name="tarjeta" id="id_tarjeta" required>
+            {% for t in tarjetas_usuario %}
+                <option value="{{ t.tarjeta.id }}" {% if t.pagada %}disabled{% endif %}>
+                    {{ t.tarjeta.nombre_tarjeta }}
+                    {% if t.pagada %} — ✅ Comprobante enviado{% endif %}
+                </option>
+            {% endfor %}
+        </select>
 
-<p><strong>Importante:</strong> Solo aparecen tus tarjetas para que selecciones la correcta.</p>
+        {{ form.archivo.label_tag }}
+        {{ form.archivo }}
 
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
+        {{ form.comentario.label_tag }}
+        {{ form.comentario }}
 
-    <label for="id_tarjeta">Seleccioná tarjeta:</label>
-    <select name="tarjeta" id="id_tarjeta" required>
-        {% for t in tarjetas_usuario %}
-            <option value="{{ t.tarjeta.id }}" {% if t.pagada %}disabled{% endif %}>
-                {{ t.tarjeta.nombre_tarjeta }}
-                {% if t.pagada %} — ✅ Comprobante enviado{% endif %}
-            </option>
-        {% endfor %}
-    </select>
+        <div style="margin-top:20px;">
+            <button type="submit" class="button">Enviar comprobante</button>
+        </div>
+    </form>
 
-    {{ form.archivo.label_tag }}
-    {{ form.archivo }}
+    <p style="margin-top:15px; color: var(--muted);">
+        📩 Una vez enviado, recibirás un email de confirmación.
+    </p>
 
-    {{ form.comentario.label_tag }}
-    {{ form.comentario }}
-
-    <br><br>
-    <button type="submit" class="button">Enviar comprobante</button>
-</form>
-
-<p>Una vez enviado, recibirás un email de confirmación como constancia.</p>
+</div>
 
 {% endblock %}
