@@ -1,5 +1,35 @@
+# Python
 *.pyc
 __pycache__/
+*.pyo
+*.pyd
+*.swp
+*.swo
+
+# Entorno virtual
 venv/
+
+# Base de datos local
 db.sqlite3
+
+# Archivos de log
+*.log
+
+# Archivos de configuración locales
+*.env
+settings_local.py
+
+# Archivos generados por Django
 staticfiles_collected/
+media/comprobantes/
+media/tmp/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
