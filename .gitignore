@@ -33,3 +33,6 @@ media/tmp/
 # OS
 .DS_Store
 Thumbs.db
+
+recordatorio.log
+*.log
