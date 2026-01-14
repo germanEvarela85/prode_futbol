@@ -7,6 +7,20 @@
     <a href="{% url 'crear_tarjeta' %}" class="button">Crear Tarjeta</a>
 </p>
 
+<!-- Selector de fecha -->
+<div class="card" style="padding:15px; margin-bottom:20px;">
+    <form method="GET" id="fechaForm">
+        <label for="fecha_id"><strong>Elegir Fecha:</strong></label>
+        <select name="fecha_id" onchange="document.getElementById('fechaForm').submit();">
+            {% for f in todas_fechas %}
+                <option value="{{ f.id }}" {% if f.id == fecha.id %}selected{% endif %}>
+                    Fecha {{ f.numero }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
 {% if tarjetas %}
 <div class="card-list">
     {% for t in tarjetas %}
@@ -42,7 +56,7 @@
     {% endfor %}
 </div>
 {% else %}
-<p>No hay tarjetas todavía.</p>
+<p>No hay tarjetas para esta fecha todavía.</p>
 {% endif %}
 
 {% endblock %}

@@ -28,9 +28,19 @@ class PronosticoForm(forms.ModelForm):
 
 
 class TarjetaForm(forms.ModelForm):
+    fecha = forms.ModelChoiceField(
+        queryset=None,  # se definirá en el __init__
+        label="Selecciona la fecha"
+    )
+
     class Meta:
         model = Tarjeta
         fields = ['fecha']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import Fecha
+        self.fields['fecha'].queryset = Fecha.objects.all().order_by('numero')
 
 
 class ComprobanteForm(forms.ModelForm):

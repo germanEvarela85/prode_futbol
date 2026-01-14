@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+from prode_app.utils import enviar_ganadores
 
 from .models import Fecha, Partido, Tarjeta, Pronostico, Comprobante
 from .forms import TarjetaForm, RegistroForm, ComprobanteForm
@@ -24,7 +25,7 @@ def calcular_cierre(fecha_obj: Fecha):
     """
     Prioridad:
     1) si fecha_obj.cierre_prode está definido -> usarlo
-    2) si no y fecha_obj.inicio_fecha está definido -> usar inicio_fecha - 2 horas
+    2) si no y fecha_obj.inicio_fecha está definido -> usar inicio_fecha - 1 horas
     3) sino -> None (sin cierre definido)
     """
     if fecha_obj is None:
@@ -32,7 +33,7 @@ def calcular_cierre(fecha_obj: Fecha):
     if fecha_obj.cierre_prode:
         return fecha_obj.cierre_prode
     if fecha_obj.inicio_fecha:
-        return fecha_obj.inicio_fecha - timedelta(hours=2)
+        return fecha_obj.inicio_fecha - timedelta(hours=1)
     return None
 
 
@@ -130,19 +131,31 @@ def reglamento(request):
     return render(request, 'prode_app/reglamento.html')
 
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from .models import Tarjeta, Pronostico, Partido, Fecha
+from .forms import TarjetaForm
+
 @login_required
-def crear_tarjeta(request, fecha_id=None):
+def crear_tarjeta(request):
     """
     Crear tarjeta para una fecha.
     Bloquea creación si pasó el cierre.
     Maneja errores de doble opción y mantiene opciones seleccionadas.
     """
-    # Obtener la fecha
+
+    # Todas las fechas para el dropdown
+    todas_fechas = Fecha.objects.order_by("numero")
+
+    # Determinar la fecha seleccionada (GET) o primera por defecto
+    fecha_id = request.GET.get('fecha_id')
     if fecha_id:
         fecha = get_object_or_404(Fecha, id=fecha_id)
     else:
-        fecha = Fecha.objects.first()
-    
+        fecha = todas_fechas.first()
+
     if not fecha:
         return render(request, "prode_app/crear_tarjeta.html", {
             "mensaje": "No hay fechas cargadas."
@@ -162,10 +175,13 @@ def crear_tarjeta(request, fecha_id=None):
         return render(request, "prode_app/crear_tarjeta.html", {
             "fecha": fecha,
             "partidos": partidos,
-            "tarjeta_form": TarjetaForm(),
+            "tarjeta_form": TarjetaForm(initial={'fecha': fecha}),
             "primer_partido": fecha.inicio_fecha,
             "cierre_prode": cierre,
-            "tiempo_restante": 0
+            "tiempo_restante": 0,
+            "todas_fechas": todas_fechas,
+            "opciones_post": {},
+            "dobles_post": {},
         })
 
     if request.method == "POST":
@@ -196,7 +212,8 @@ def crear_tarjeta(request, fecha_id=None):
                 "dobles_post": dobles_post,
                 "primer_partido": fecha.inicio_fecha,
                 "cierre_prode": cierre,
-                "tiempo_restante": tiempo_restante
+                "tiempo_restante": tiempo_restante,
+                "todas_fechas": todas_fechas
             })
 
         # Guardar tarjeta
@@ -204,6 +221,8 @@ def crear_tarjeta(request, fecha_id=None):
         tarjeta.usuario = request.user
         tarjeta.fecha = fecha
         tarjeta.numero_tarjeta = Tarjeta.objects.filter(usuario=request.user, fecha=fecha).count() + 1
+        # ⚡ Aquí agregamos el guion bajo al nombre de la tarjeta
+        tarjeta.nombre_tarjeta = f"{request.user.username}_{tarjeta.numero_tarjeta}"
         tarjeta.save()
 
         # Guardar pronósticos
@@ -221,7 +240,8 @@ def crear_tarjeta(request, fecha_id=None):
         return redirect("subir_comprobante")
 
     else:
-        tarjeta_form = TarjetaForm()
+        # Si es GET o se cambió de fecha, se inicializa form y opciones vacías
+        tarjeta_form = TarjetaForm(initial={'fecha': fecha})
         opciones_post = {}
         dobles_post = {}
 
@@ -233,8 +253,10 @@ def crear_tarjeta(request, fecha_id=None):
         "dobles_post": dobles_post,
         "primer_partido": fecha.inicio_fecha,
         "cierre_prode": cierre,
-        "tiempo_restante": tiempo_restante
+        "tiempo_restante": tiempo_restante,
+        "todas_fechas": todas_fechas
     })
+
 
 # --------------------------
 # MIS TARJETAS
@@ -242,40 +264,57 @@ def crear_tarjeta(request, fecha_id=None):
 @login_required
 def mis_tarjetas(request):
     """
-    Mostrar todas las tarjetas de todos los usuarios.
-    - Primero las tarjetas del usuario actual (más recientes primero).
-    - Luego las tarjetas del resto de los usuarios.
-    - Si la Fecha tiene cierre, se intenta ocultar tarjetas creadas después del cierre (si existe created_at).
+    Mostrar tarjetas filtradas por fecha seleccionada.
+    - Dropdown con todas las fechas creadas.
     - Se indica si cada tarjeta está pagada (comprobante procesado).
+    - Se ordena: primero las mías, luego las de otros usuarios.
     """
-    # traer todas las tarjetas ordenadas por fecha y numero (lo mismo que tenías)
-    todas_tarjetas_raw = Tarjeta.objects.select_related('usuario', 'fecha').order_by('-fecha__numero', '-numero_tarjeta')
+    # Todas las fechas para el dropdown
+    todas_fechas = Fecha.objects.order_by("numero")
+
+    # Determinar la fecha seleccionada (GET) o primera por defecto
+    fecha_id = request.GET.get('fecha_id')
+    if fecha_id:
+        fecha = get_object_or_404(Fecha, id=fecha_id)
+    else:
+        fecha = todas_fechas.first()
+
+    if not fecha:
+        return render(request, "prode_app/mis_tarjetas.html", {
+            "mensaje": "No hay fechas cargadas."
+        })
+
+    # traer todas las tarjetas de esa fecha
+    todas_tarjetas_raw = Tarjeta.objects.filter(fecha=fecha).select_related('usuario', 'fecha').order_by('-numero_tarjeta')
 
     tarjetas_con_estado = []
     ahora = timezone.now()
     for t in todas_tarjetas_raw:
-        # intentar filtrar según cierre si existe created_at en el modelo Tarjeta
+        # comprobar cierre si existe created_at
         cierre = calcular_cierre(t.fecha)
         if cierre and hasattr(t, "created_at"):
             try:
-                # si la tarjeta fue creada después del cierre, la ignoramos
                 if t.created_at and t.created_at > cierre:
                     continue
             except Exception:
-                pass  # si hay problemas con el formato, ignoramos la restricción
-        # comprobar si está pagada
+                pass
+
         pagada = Comprobante.objects.filter(tarjeta=t, procesado=True).exists()
         tarjetas_con_estado.append({
             "tarjeta": t,
             "pagada": pagada
         })
 
-    # reordenar para poner primero las mias
+    # Reordenar: primero las mías
     tarjetas_mias = [x for x in tarjetas_con_estado if x["tarjeta"].usuario == request.user]
     tarjetas_otros = [x for x in tarjetas_con_estado if x["tarjeta"].usuario != request.user]
     tarjetas_final = tarjetas_mias + tarjetas_otros
 
-    return render(request, "prode_app/mis_tarjetas.html", {"tarjetas": tarjetas_final})
+    return render(request, "prode_app/mis_tarjetas.html", {
+        "tarjetas": tarjetas_final,
+        "todas_fechas": todas_fechas,
+        "fecha": fecha
+    })
 
 
 # --------------------------
@@ -322,11 +361,27 @@ def borrar_tarjeta(request, tarjeta_id):
 # CARGAR RESULTADOS (solo admin)
 # --------------------------
 @login_required
-def cargar_resultados(request, fecha_id):
+def cargar_resultados(request, fecha_id=None):
     if not request.user.is_superuser:
         raise PermissionDenied("No tenés permiso para esto.")
 
-    fecha = get_object_or_404(Fecha, id=fecha_id)
+    # Todas las fechas para el dropdown
+    todas_fechas = Fecha.objects.order_by("numero")
+
+    # Determinar fecha seleccionada: GET o URL
+    fecha_id_get = request.GET.get('fecha_id')
+    if fecha_id_get:
+        fecha = get_object_or_404(Fecha, id=fecha_id_get)
+    elif fecha_id:
+        fecha = get_object_or_404(Fecha, id=fecha_id)
+    else:
+        fecha = todas_fechas.first()
+
+    if not fecha:
+        return render(request, "prode_app/cargar_resultados.html", {
+            "mensaje": "No hay fechas cargadas."
+        })
+
     partidos = Partido.objects.filter(fecha=fecha)
 
     if request.method == "POST":
@@ -358,15 +413,32 @@ def cargar_resultados(request, fecha_id):
     return render(request, "prode_app/cargar_resultados.html", {
         "fecha": fecha,
         "partidos": partidos,
+        "todas_fechas": todas_fechas
     })
+
 
 
 # --------------------------
 # RANKING (solo tarjetas pagadas)
 # --------------------------
 @login_required
-def ranking_fecha(request, fecha_id):
-    fecha = get_object_or_404(Fecha, id=fecha_id)
+def ranking_fecha(request, fecha_id=None):
+    # Todas las fechas para el dropdown
+    todas_fechas = Fecha.objects.order_by("numero")
+
+    # Determinar la fecha seleccionada (GET o parámetro)
+    fecha_id_get = request.GET.get('fecha_id')
+    if fecha_id_get:
+        fecha = get_object_or_404(Fecha, id=fecha_id_get)
+    elif fecha_id:
+        fecha = get_object_or_404(Fecha, id=fecha_id)
+    else:
+        fecha = todas_fechas.first()
+
+    if not fecha:
+        return render(request, "prode_app/ranking_fecha.html", {
+            "mensaje": "No hay fechas cargadas."
+        })
 
     tarjetas = (
         Tarjeta.objects
@@ -394,7 +466,9 @@ def ranking_fecha(request, fecha_id):
     return render(request, "prode_app/ranking_fecha.html", {
         "fecha": fecha,
         "ranking": ranking,
+        "todas_fechas": todas_fechas
     })
+
 
 
 # --------------------------
@@ -430,12 +504,12 @@ def buscar_tarjeta(request):
 def obtener_cuenta_activa():
     cuentas = [
         {"banco": "NARANJA X", "alias": "germanvarela85", "cbu": "4530000800010436813880", "titular": "Germán Emiliano Varela"},
-        {"banco": "SANTANDER", "alias": "deposito.segundo", "cbu": "0720000788000092345678", "titular": "Prode Cuenta 2"},
+        {"banco": "MERCADO PAGO", "alias": "german85.varela", "cbu": "0000003100083158571556", "titular": "Germán Emiliano Varela"},
         {"banco": "BBVA", "alias": "tercera.cuenta.prode", "cbu": "0170201870000004567891", "titular": "Prode Cuenta 3"},
     ]
 
     total_procesadas = Comprobante.objects.filter(procesado=True).count()
-    index = min(total_procesadas // 3, len(cuentas) - 1)
+    index = min(total_procesadas // 300, len(cuentas) - 1)
     return cuentas[index]
 
 
@@ -451,9 +525,10 @@ def subir_comprobante(request):
 
     CUENTAS_DEPOSITO = [
         {"banco": "NARANJA X", "alias": "germanvarela85", "cbu": "4530000800010436813880", "titular": "Germán Emiliano Varela"},
-        {"banco": "BBVA PRUEBA", "alias": "cuenta_prueba_1", "cbu": "0123456789012345678901", "titular": "Cuenta Prueba Uno"},
-        {"banco": "HSBC DEMO", "alias": "cuenta_prueba_2", "cbu": "1098765432109876543210", "titular": "Cuenta Prueba Dos"},
-    ]
+        {"banco": "NARANJA X", "alias": "PLOPEZ9354.NX.ARS", "cbu": "4530000800016353876397", "titular": "Paola Andrea López"},
+        {"banco": "SANTANDER", "alias": "lucasvarela81", "cbu": "0720374788000002053518", "titular": "Lucas Sebastián Varela"},
+        {"banco": "MERCADO PAGO", "alias": "german85.varela", "cbu": "0000003100083158571556", "titular": "Germán Emiliano Varela"},
+            ]
 
     def enviar_email(subject, body, destinatarios, archivo=None):
         """
@@ -552,7 +627,7 @@ def subir_comprobante(request):
     if tarjeta_sel:
         fecha_rel = tarjeta_sel.fecha
         processed_count = Comprobante.objects.filter(tarjeta__fecha=fecha_rel, procesado=True).count()
-        grupo = processed_count // 3
+        grupo = processed_count // 300
         if grupo < len(CUENTAS_DEPOSITO):
             cuenta_info = CUENTAS_DEPOSITO[grupo]
         else:
@@ -569,3 +644,153 @@ def subir_comprobante(request):
         "primer_partido": primer_partido,
         "cierre_prode": cierre_fecha,
     })
+
+
+# --------------------------
+# FUNCION HELPER DE EMAIL (reutilizable)
+# --------------------------
+def enviar_email(subject, body, destinatarios, archivo=None):
+    """
+    Helper para enviar email.
+    - archivo: ruta del archivo o archivo tipo InMemoryUploadedFile
+    """
+    from django.core.mail import EmailMessage
+    email = EmailMessage(subject, body, to=destinatarios)
+    if archivo:
+        try:
+            if hasattr(archivo, 'path'):  # archivo físico
+                email.attach_file(archivo.path)
+            else:  # archivo en memoria
+                archivo.open('rb')
+                email.attach(archivo.name, archivo.read())
+                archivo.close()
+        except Exception as e:
+            raise Exception(f"Error adjuntando archivo: {e}")
+    email.send(fail_silently=False)
+
+
+@login_required
+def enviar_pozo(request, fecha_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied("Solo admin puede enviar el pozo.")
+
+    fecha = get_object_or_404(Fecha, id=fecha_id)
+
+    if fecha.pozo_enviado:
+        messages.info(request, f"El pozo de la Fecha {fecha.numero} ya fue enviado. Monto: ${fecha.pozo_total:,}")
+        return redirect("mis_tarjetas")  # redirigir a donde quieras
+
+    if request.method == "POST":
+        # monto confirmado por admin
+        try:
+            monto_total = int(request.POST.get("monto_total"))
+        except:
+            messages.error(request, "Monto inválido.")
+            return redirect("enviar_pozo", fecha_id=fecha.id)
+
+        # obtener tarjetas pagas
+        tarjetas_pagas = Tarjeta.objects.filter(
+            fecha=fecha,
+            comprobante__procesado=True
+        ).distinct()
+
+        if not tarjetas_pagas.exists():
+            messages.warning(request, "No hay usuarios con tarjetas pagas para enviar el pozo.")
+            return redirect("mis_tarjetas")
+
+        # obtener emails únicos
+        emails = list(tarjetas_pagas.values_list("usuario__email", flat=True).distinct())
+
+        # preparar email
+        subject = f"Prode Farina - Pozo de la Fecha {fecha.numero}"
+        body = (
+            f"Hola!\n\n"
+            f"La fecha {fecha.numero} del Prode Farina ha finalizado.\n"
+            f"Cantidad de tarjetas válidas y pagas: {tarjetas_pagas.count()}\n"
+            f"Pozo total confirmado: ${monto_total:,} ARS\n\n"
+            "¡Gracias por participar!"
+        )
+
+        # enviar email masivo usando tu helper
+        try:
+            enviar_email(subject, body, emails)
+        except Exception as e:
+            messages.error(request, f"Error enviando emails: {e}")
+            return redirect("mis_tarjetas")
+
+        # marcar fecha como enviada
+        fecha.pozo_enviado = True
+        fecha.pozo_total = monto_total
+        fecha.save()
+
+        messages.success(request, f"Mail del pozo enviado a {len(emails)} participantes.")
+        return redirect("mis_tarjetas")
+
+    return render(request, "prode_app/enviar_pozo.html", {"fecha": fecha})
+
+
+@login_required
+def enviar_ganadores_view(request, fecha_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied("Solo admin puede enviar los ganadores.")
+
+    fecha = get_object_or_404(Fecha, id=fecha_id)
+
+    if not fecha.pozo_total:
+        messages.error(request, "❌ La fecha no tiene pozo cargado.")
+        return redirect("mis_tarjetas")
+
+    tarjetas_pagas = Tarjeta.objects.filter(
+        fecha=fecha,
+        comprobante__procesado=True
+    ).select_related("usuario")
+
+    if not tarjetas_pagas.exists():
+        messages.warning(request, "❌ No hay tarjetas pagadas.")
+        return redirect("mis_tarjetas")
+
+    max_puntos = tarjetas_pagas.order_by("-puntos").first().puntos
+    ganadores = tarjetas_pagas.filter(puntos=max_puntos)
+
+    cantidad = ganadores.count()
+    premio = fecha.pozo_total / cantidad if cantidad > 0 else 0
+
+    emails = []
+    detalle = ""
+
+    for t in ganadores:
+        detalle += (
+            f"- Usuario: {t.usuario.username}\n"
+            f"  Tarjeta: {t.nombre_tarjeta}\n"
+            f"  Puntos: {t.puntos}\n\n"
+        )
+        if t.usuario.email:
+            emails.append(t.usuario.email)
+
+    subject = f"🏆 Prode Farina - Ganadores Fecha {fecha.numero}"
+    body = (
+        f"¡Felicitaciones!\n\n"
+        f"Fecha {fecha.numero}\n"
+        f"Pozo total: ${fecha.pozo_total:,} ARS\n"
+        f"Ganadores: {cantidad}\n"
+        f"Premio por ganador: ${premio:,.2f} ARS\n\n"
+        f"{detalle}"
+        "Gracias por participar."
+    )
+
+    if request.method == "POST":
+        if emails:
+            send_mail(
+                subject,
+                body,
+                settings.DEFAULT_FROM_EMAIL,
+                list(set(emails)),
+                fail_silently=False
+            )
+            messages.success(request, f"✅ Email enviado a {len(set(emails))} ganador/es")
+        else:
+            messages.warning(request, "⚠️ No hay emails para enviar")
+
+        return redirect("mis_tarjetas")
+
+    return render(request, "prode_app/enviar_ganadores.html", {"fecha": fecha, "cantidad": cantidad})

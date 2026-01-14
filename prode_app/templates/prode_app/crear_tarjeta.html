@@ -1,11 +1,11 @@
 {% extends "prode_app/base.html" %}
 {% load static %}
-
+{% load dict_extras %}
 {% block content %}
 
-<h1>Crear Tarjeta - Fecha {{ fecha.numero }}</h1>
+<h1>Crear Tarjeta - {{ fecha }}</h1>
 
-<!-- ===== MENSAJE DE ATENCIÓN ===== -->
+<!-- Mensaje de atención -->
 <div style="
     background-color: #f8d7da;
     color: #721c24;
@@ -16,12 +16,12 @@
     font-weight: bold;
 ">
     ⚠️ Atención!  
-    Deben marcar una opción en cada partido y una opción doble en 
+    Debes marcar una opción en cada partido y una opción doble en 
     <u>un sólo partido</u> 
     (<strong>diferente</strong> a la opción principal que marcaron).
 </div>
 
-<!-- ===== MENSAJES DE ERROR / INFO ===== -->
+<!-- Mensajes -->
 {% if messages %}
     <div style="margin-bottom:15px;">
         {% for message in messages %}
@@ -44,7 +44,7 @@
     </p>
 {% else %}
 
-<!-- ===== CONTADOR ===== -->
+<!-- Contador -->
 <p id="contador_tarjeta" style="color:red; font-weight:bold;"></p>
 
 <script>
@@ -73,18 +73,25 @@
     actualizarContadorTarjeta();
 </script>
 
+<!-- ===== Formulario GET para elegir fecha ===== -->
+<div class="card" style="padding:20px; margin-bottom:20px;">
+    <h3>Elije la fecha</h3>
+    <form method="GET" id="fechaForm">
+        <select name="fecha_id" onchange="document.getElementById('fechaForm').submit();">
+            {% for f in todas_fechas %}
+                <option value="{{ f.id }}" {% if f.id == fecha.id %}selected{% endif %}>
+                    {{ f }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<!-- ===== Formulario POST para guardar tarjeta ===== -->
 <form method="POST">
     {% csrf_token %}
 
-    <!-- ===== INFO TARJETA ===== -->
-    <div class="card" style="padding:20px; margin-bottom:20px;">
-        <h3>Información de la tarjeta</h3>
-        <div class="tarjeta-form">
-            {{ tarjeta_form.as_p }}
-        </div>
-    </div>
-
-    <!-- ===== PARTIDOS ===== -->
+    <!-- Partidos -->
     <div class="card">
         <h3>Pronósticos de los partidos</h3>
 
@@ -117,7 +124,8 @@
                         <input type="radio"
                                name="opcion1_{{ partido.id }}"
                                value="1"
-                               required>
+                               required
+                               {% if opciones_post|get_item:"opcion1_"|add:partido.id|default_if_none:'' == '1' %}checked{% endif %}>
                         {{ partido.local.nombre }}
                     </td>
 
@@ -125,7 +133,8 @@
                         <input type="radio"
                                name="opcion1_{{ partido.id }}"
                                value="2"
-                               required>
+                               required
+                               {% if opciones_post|get_item:"opcion1_"|add:partido.id|default_if_none:'' == '2' %}checked{% endif %}>
                         Empate
                     </td>
 
@@ -133,16 +142,17 @@
                         <input type="radio"
                                name="opcion1_{{ partido.id }}"
                                value="3"
-                               required>
+                               required
+                               {% if opciones_post|get_item:"opcion1_"|add:partido.id|default_if_none:'' == '3' %}checked{% endif %}>
                         {{ partido.visitante.nombre }}
                     </td>
 
                     <td>
                         <select name="opcion2_{{ partido.id }}">
                             <option value="">---</option>
-                            <option value="1">{{ partido.local.nombre }}</option>
-                            <option value="2">Empate</option>
-                            <option value="3">{{ partido.visitante.nombre }}</option>
+                            <option value="1" {% if dobles_post|get_item:"opcion2_"|add:partido.id|default_if_none:'' == '1' %}selected{% endif %}>{{ partido.local.nombre }}</option>
+                            <option value="2" {% if dobles_post|get_item:"opcion2_"|add:partido.id|default_if_none:'' == '2' %}selected{% endif %}>Empate</option>
+                            <option value="3" {% if dobles_post|get_item:"opcion2_"|add:partido.id|default_if_none:'' == '3' %}selected{% endif %}>{{ partido.visitante.nombre }}</option>
                         </select>
                     </td>
                 </tr>

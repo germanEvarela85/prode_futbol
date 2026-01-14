@@ -37,19 +37,20 @@ class Fecha(models.Model):
     numero = models.PositiveIntegerField()
     descripcion = models.CharField(max_length=100, blank=True, null=True)
 
-    # Hora real del primer partido de la fecha (manual)
     inicio_fecha = models.DateTimeField(
         blank=True,
         null=True,
-        help_text="Hora del primer partido. Se usa para cerrar creación y pago de tarjetas."
+        help_text="Hora del primer partido."
     )
 
-    # Hora de cierre del prode (por ej. 2 horas antes del inicio)
     cierre_prode = models.DateTimeField(
         blank=True,
         null=True,
         help_text="Límite para crear y pagar tarjetas."
     )
+
+    pozo_enviado = models.BooleanField(default=False)
+    pozo_total = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return f"Fecha {self.numero}"
@@ -90,7 +91,6 @@ class Fecha(models.Model):
             return timezone.now() >= cierre
         return False
 
-        
     # -----------------------------------
     # GENERAR AUTOMÁTICAMENTE EL CIERRE
     # -----------------------------------
@@ -103,13 +103,6 @@ class Fecha(models.Model):
     # -----------------------------------
     # MÉTODOS DE CONTROL
     # -----------------------------------
-
-    @property
-    def esta_cerrada(self):
-        """Retorna True si ya pasó la hora de cierre."""
-        if not self.cierre_prode:
-            return False
-        return timezone.now() >= self.cierre_prode
 
     @property
     def ya_empezo(self):
@@ -207,4 +200,3 @@ class Comprobante(models.Model):
 
     def __str__(self):
         return f"Comprobante {self.id} - {self.tarjeta.nombre_tarjeta} - {self.usuario.username}"
-

@@ -5,74 +5,114 @@
     <title>PRODE</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'style.css' %}">
+
+    <style>
+        body.bg-estadio {
+            background-image:
+                linear-gradient(
+                    rgba(7, 20, 40, 0.4),
+                    rgba(7, 20, 40, 0.4)
+                ),
+                url("{% static 'img/2.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        .logo-header {
+            max-width: 220px;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
-<body>
+
+<body class="bg-estadio">
 
 <div class="container">
 
 {% if user.is_authenticated %}
-    <header>
-        <h1>PRODE FARINA</h1>
-        <p>
-            Hola, {{ user.username }} |
-            <form method="post" action="{% url 'logout' %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="button secondary">Cerrar sesión</button>
-            </form>
-        </p>
+<header style="text-align:center;">
 
-        {% if primer_partido and cierre_prode %}
+    <!-- LOGO -->
+    <img src="{% static 'img/logo_prode.png' %}"
+         alt="Prode Farina"
+         class="logo-header">
+
+    <p>
+        Hola, {{ user.username }} |
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="button secondary">Cerrar sesión</button>
+        </form>
+    </p>
+
+    {% if primer_partido and cierre_prode %}
         <p style="font-size: 0.9em; color: gray;">
             🕒 Primer partido: {{ primer_partido|date:"d/m/Y H:i" }} |
             ⏱️ Cierre prode: {{ cierre_prode|date:"d/m/Y H:i" }}
         </p>
-        <p id="contador" style="color: blue; font-weight:bold;"></p>
+
+        <p id="contador" style="color:red; margin-top:15px; font-weight:bold;"></p>
+
         <script>
             const cierre = new Date("{{ cierre_prode|date:'Y-m-d H:i:s' }}").getTime();
             const contadorElem = document.getElementById('contador');
+
             function actualizarContador() {
                 const now = new Date().getTime();
                 let diff = cierre - now;
-                if(diff <= 0) {
+
+                if (diff <= 0) {
                     contadorElem.innerText = "⛔ El prode ya cerró";
                     clearInterval(intervalo);
                     return;
                 }
-                const h = Math.floor(diff / (1000*60*60));
-                const m = Math.floor((diff % (1000*60*60)) / (1000*60));
-                const s = Math.floor((diff % (1000*60)) / 1000);
+
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+
                 contadorElem.innerText = `Tiempo restante para cerrar: ${h}h ${m}m ${s}s`;
             }
+
             const intervalo = setInterval(actualizarContador, 1000);
             actualizarContador();
         </script>
-        {% endif %}
-    </header>
+    {% endif %}
+</header>
 
-    <nav>
-        <a href="{% url 'reglamento' %}" class="button secondary">Reglamento</a>
-        <a href="{% url 'mis_tarjetas' %}" class="button secondary">Mis Tarjetas</a>
-        <a href="{% url 'crear_tarjeta' %}" class="button">Crear Tarjeta</a>
-        <a href="{% url 'ranking_fecha' 1 %}" class="button secondary">Ranking</a>
-        <a href="{% url 'subir_comprobante' %}" class="button secondary">Subir comprobante</a>
+<nav>
+    <a href="{% url 'reglamento' %}" class="button {% if request.resolver_match.url_name == 'reglamento' %}active{% else %}secondary{% endif %}">Reglamento</a>
+    <a href="{% url 'mis_tarjetas' %}" class="button {% if request.resolver_match.url_name == 'mis_tarjetas' %}active{% else %}secondary{% endif %}">Mis Tarjetas</a>
+    <a href="{% url 'crear_tarjeta' %}" class="button {% if request.resolver_match.url_name == 'crear_tarjeta' %}active{% else %}secondary{% endif %}">Crear Tarjeta</a>
 
-        {% if user.is_superuser %}
-            <a href="{% url 'cargar_resultados' 1 %}" class="button boton-rojo">Cargar Resultados</a>
-        {% endif %}
+    {% if fecha %}
+        <a href="{% url 'ranking_fecha' fecha.id %}" class="button {% if request.resolver_match.url_name == 'ranking_fecha' %}active{% else %}secondary{% endif %}">
+            Ranking
+        </a>
+    {% endif %}
 
-        <form action="{% url 'buscar_tarjeta' %}" method="get" class="search-form" style="display:inline-block; margin-left:20px;">
-            <input type="text" name="q" placeholder="Buscar tarjeta..." required>
-            <button type="submit" class="button secondary">Buscar</button>
-        </form>
-    </nav>
+    <a href="{% url 'subir_comprobante' %}" class="button {% if request.resolver_match.url_name == 'subir_comprobante' %}active{% else %}secondary{% endif %}">
+        Subir comprobante
+    </a>
 
-    <hr>
+    {% if user.is_superuser and fecha %}
+        <a href="{% url 'cargar_resultados' fecha.id %}"
+           class="button {% if request.resolver_match.url_name == 'cargar_resultados' %}active boton-rojo{% else %}boton-rojo{% endif %}">
+            Cargar Resultados
+        </a>
+    {% endif %}
+</nav>
+
+<hr>
 
 {% else %}
-    <p>
-        <a href="{% url 'login' %}" class="button secondary">Iniciar sesión</a>
-        <a href="{% url 'registro' %}" class="button">Registrarse</a>
-    </p>
+<p style="text-align:center;">
+    <a href="{% url 'login' %}" class="button secondary">Iniciar sesión</a>
+    <a href="{% url 'registro' %}" class="button">Registrarse</a>
+</p>
 {% endif %}
 
 {% block content %}
@@ -81,17 +121,18 @@
 <hr style="margin-top:40px;">
 
 <footer style="text-align:center; font-size:0.9em; color:gray; margin-bottom:10px;">
-    📧 Contacto y soporte:
+    📧 Contacto:
     <a href="mailto:prodefarina26@gmail.com" style="color:gray;">
         prodefarina26@gmail.com
     </a>
     <br>
-    <span>
-        Para soporte técnico, consultas, pagos y cobro de premios
-    </span>
+    🟢 WhatsApp:
+    <a href="https://wa.me/5493513130316" target="_blank"
+       style="color:gray; font-weight:bold;">
+        +54 9 351 3130316
+    </a>
 </footer>
 
 </div>
-
 </body>
 </html>

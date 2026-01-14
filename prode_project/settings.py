@@ -65,9 +65,11 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'prode_app.context_processors.fecha_activa',
             ],
         },
     },
@@ -156,7 +158,7 @@ LOGOUT_REDIRECT_URL = 'login'       # adónde va al cerrar sesión
 
 
 
-#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 #DEFAULT_FROM_EMAIL = 'no-reply@prode.local'
 #ADMIN_EMAIL = 'tu_email@ejemplo.com'  # reemplazalo por tu email real para recibir comprobantes en producción
 

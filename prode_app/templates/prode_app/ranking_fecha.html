@@ -7,6 +7,20 @@
     <a href="{% url 'mis_tarjetas' %}" class="button secondary">Volver</a>
 </div>
 
+<!-- Selector de fecha -->
+<div class="card" style="padding:15px; margin-bottom:20px;">
+    <form method="GET" id="fechaForm">
+        <label for="fecha_id"><strong>Elegir Fecha:</strong></label>
+        <select name="fecha_id" onchange="document.getElementById('fechaForm').submit();">
+            {% for f in todas_fechas %}
+                <option value="{{ f.id }}" {% if f.id == fecha.id %}selected{% endif %}>
+                    Fecha {{ f.numero }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
 {% if ranking %}
 <div class="card">
     <table class="table">

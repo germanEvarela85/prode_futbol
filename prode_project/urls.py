@@ -6,6 +6,7 @@ from prode_app import views
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.conf.urls.static import static
+from prode_app.views import enviar_ganadores_view
 
 
 urlpatterns = [
@@ -99,6 +100,12 @@ urlpatterns = [
     path("fecha/<int:fecha_id>/ranking/", login_required(views.ranking_fecha), name="ranking_fecha"),
 
     path("buscar_tarjeta/", login_required(views.buscar_tarjeta), name="buscar_tarjeta"),
+
+    # ---------------------------------------------------------
+    # 💰 ENVIAR POZO y GANADORES (solo admin)
+    # ---------------------------------------------------------
+    path("enviar_pozo/<int:fecha_id>/", login_required(views.enviar_pozo), name="enviar_pozo"),
+    path("enviar_ganadores/<int:fecha_id>/", enviar_ganadores_view, name="enviar_ganadores"),
 ]
 
 # ---------------------------------------------------------
