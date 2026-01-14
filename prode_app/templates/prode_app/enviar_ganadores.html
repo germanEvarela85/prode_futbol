@@ -1,0 +1,20 @@
+{% extends "prode_app/base.html" %}
+{% block content %}
+
+<h2>Enviar Ganadores - Fecha {{ fecha.numero }}</h2>
+
+{% if cantidad == 0 %}
+<p>No hay ganadores aún o no hay tarjetas pagadas.</p>
+{% else %}
+<form method="post">
+    {% csrf_token %}
+    <p>
+        Se enviará un email a los ganadores con su premio proporcional.<br>
+        Cantidad de ganadores: <strong>{{ cantidad }}</strong><br>
+        Pozo total: <strong>${{ fecha.pozo_total|default_if_none:"0"|intcomma }}</strong>
+    </p>
+    <button type="submit" class="button">Enviar email a ganadores</button>
+</form>
+{% endif %}
+
+{% endblock %}

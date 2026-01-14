@@ -1,47 +1,42 @@
 {% extends "prode_app/base.html" %}
+{% load static %}
 {% block content %}
 
 <div class="container" style="max-width:400px; margin-top:40px;">
+    <div class="card" style="padding:30px; text-align:center;">
 
-    <div class="card" style="padding:30px;">
-        <h2 style="margin-bottom:20px; text-align:center;">Registrarse</h2>
+        <img src="{% static 'img/logo_prode.png' %}"
+             alt="Prode"
+             style="max-width:180px; margin-bottom:20px;">
+
+        <h2 style="margin-bottom:20px;">Registrarse</h2>
 
         {% if form.errors %}
         <div class="alert error">
-            Por favor corrige los errores en el formulario
-        </div>
-        {% endif %}
-
-        {% if enviado_email %}
-        <div class="alert success">
-            Te enviamos un email para activar tu cuenta. Revisa tu bandeja de entrada.
+            Revisá los datos ingresados
         </div>
         {% endif %}
 
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
-            <div style="margin-bottom:15px;">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            <div style="margin-bottom:15px; text-align:left;">
+                <label>{{ field.label }}</label>
                 {{ field }}
-                {% if field.errors %}
-                <div class="alert error" style="margin-top:5px; font-size:0.85rem;">
-                    {{ field.errors|striptags }}
-                </div>
-                {% endif %}
+                {{ field.errors }}
             </div>
             {% endfor %}
 
-            <button type="submit" class="button" style="width:100%; padding:12px; font-size:1rem;">
+            <button type="submit" class="button" style="width:100%;">
                 Registrarse
             </button>
         </form>
 
-        <p style="margin-top:15px; text-align:center; color:var(--muted); font-size:0.9rem;">
-            ¿Ya tenés cuenta? <a href="{% url 'login' %}" style="color:var(--accent); text-decoration:none;">Inicia sesión</a>
+        <p style="margin-top:15px; font-size:0.9rem;">
+            ¿Ya tenés cuenta?
+            <a href="{% url 'login' %}">Iniciar sesión</a>
         </p>
     </div>
-
 </div>
 
 {% endblock %}

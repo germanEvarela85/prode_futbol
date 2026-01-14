@@ -1,0 +1,64 @@
+Enviar pozo
+
+from django.conf import settings
+from django.core.mail import send_mail
+from prode_app.models import Fecha, Tarjeta
+
+# --------------------------
+# Elegimos la fecha
+# --------------------------
+fecha_id = 3  # reemplazá con la fecha que quieras
+fecha = Fecha.objects.get(id=fecha_id)
+
+# --------------------------
+# Ponemos el monto total
+# --------------------------
+monto_total = 4800
+
+# --------------------------
+# Obtenemos emails de tarjetas pagas
+# --------------------------
+emails = list(
+    Tarjeta.objects.filter(
+        fecha=fecha,
+        comprobante__procesado=True
+    ).values_list("usuario__email", flat=True).distinct()
+)
+
+print("Emails destino:", emails)
+
+# --------------------------
+# Enviamos email si hay destinatarios
+# --------------------------
+if emails:
+    send_mail(
+        subject=f"Prode Farina - Pozo de la Fecha {fecha.numero}",
+        message=(
+            f"Hola!\n\n"
+            f"La fecha {fecha.numero} del Prode Farina ha comenzado.\n"
+            f"Cantidad de tarjetas válidas y pagas: {len(emails)}\n"
+            f"Pozo total confirmado: ${monto_total:,} ARS\n\n"
+            "¡Gracias por participar!"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=emails,
+        fail_silently=False,
+    )
+    # 🔹 Guardamos en la base de datos que ya se envió
+    fecha.pozo_enviado = True
+    fecha.pozo_total = monto_total
+    fecha.save()
+    print(f"✅ Emails enviados a {len(emails)} participantes")
+else:
+    print("❌ No hay emails para enviar")
+
+
+
+
+
+_enviar ganadores
+
+from prode_app.utils import enviar_ganadores
+
+# reemplazá 3 por el ID real de la fecha que querés enviar
+enviar_ganadores(3)

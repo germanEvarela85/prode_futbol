@@ -1,9 +1,15 @@
 {% extends "prode_app/base.html" %}
+{% load static %}
 {% block content %}
 
 <div class="container" style="max-width:400px; margin-top:40px;">
-    <div class="card" style="padding:30px;">
-        <h2 style="margin-bottom:20px; text-align:center;">Iniciar Sesión</h2>
+    <div class="card" style="padding:30px; text-align:center;">
+
+        <img src="{% static 'img/logo_prode.png' %}"
+             alt="Prode"
+             style="max-width:180px; margin-bottom:20px;">
+
+        <h2 style="margin-bottom:20px;">Iniciar sesión</h2>
 
         {% if form.errors %}
         <div class="alert error">
@@ -11,32 +17,22 @@
         </div>
         {% endif %}
 
-        {% if mensaje %}
-        <div class="alert info">
-            {{ mensaje }}
-        </div>
-        {% endif %}
-
         <form method="post">
             {% csrf_token %}
-            <div style="margin-bottom:15px;">
-                <label for="id_username">Usuario</label>
+            <div style="margin-bottom:15px; text-align:left;">
+                <label>Usuario</label>
                 {{ form.username }}
             </div>
-            <div style="margin-bottom:20px;">
-                <label for="id_password">Contraseña</label>
+            <div style="margin-bottom:20px; text-align:left;">
+                <label>Contraseña</label>
                 {{ form.password }}
             </div>
-            <button type="submit" class="button" style="width:100%; padding:12px; font-size:1rem;">
+            <button type="submit" class="button" style="width:100%;">
                 Ingresar
             </button>
         </form>
 
-        <p style="margin-top:15px; text-align:center; font-size:0.9rem;">
-            ¿Olvidaste tu contraseña? <a href="{% url 'password_reset' %}">Recuperarla</a>
-        </p>
-
-        <p style="margin-top:10px; text-align:center; font-size:0.9rem;">
+        <p style="margin-top:15px; font-size:0.9rem;">
             ¿No tenés cuenta? <a href="{% url 'registro' %}">Registrate</a>
         </p>
     </div>

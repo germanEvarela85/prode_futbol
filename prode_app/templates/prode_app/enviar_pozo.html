@@ -1,0 +1,14 @@
+{% load humanize %}
+
+<h2>Enviar Pozo - Fecha {{ fecha.numero }}</h2>
+
+{% if fecha.pozo_enviado %}
+  <p>El pozo ya fue enviado. Monto: ${{ fecha.pozo_total|default_if_none:"0"|intcomma }}</p>
+{% else %}
+  <form method="post">
+    {% csrf_token %}
+    <label for="monto_total">Monto total del pozo (ARS):</label>
+    <input type="number" name= 4800 id= 4800 required>
+    <button type="submit">Enviar email del pozo</button>
+  </form>
+{% endif %}

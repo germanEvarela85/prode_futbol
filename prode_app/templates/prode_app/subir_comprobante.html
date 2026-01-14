@@ -7,10 +7,10 @@
 
     {% if cierre_prode and cierre_prode <= now %}
         <p style="color:red; font-weight:bold;">
-            ⛔ El periodo para subir comprobantes para esta fecha ya cerró.
+            ⛔ El período para subir comprobantes para esta fecha ya cerró.
         </p>
     {% else %}
-        <p id="contador_comprobante" style="color: blue; font-weight:bold;"></p>
+        <p id="contador_comprobante" style="color:red; margin-top:15px; font-weight:bold;"></p>
         <script>
             const cierreComprobante = new Date("{{ cierre_prode|date:'Y-m-d H:i:s' }}").getTime();
             const contadorElemComprobante = document.getElementById('contador_comprobante');
@@ -46,7 +46,7 @@
     </ul>
 
     <p style="margin-top:10px;">
-        ⚠️ Solo aparecen tus tarjetas disponibles para seleccionar.
+        ⚠️ Sólo aparecen tus tarjetas disponibles para seleccionar.
     </p>
 
     <form method="post" enctype="multipart/form-data">
