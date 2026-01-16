@@ -13,7 +13,6 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from prode_app.utils import enviar_ganadores
-
 from .models import Fecha, Partido, Tarjeta, Pronostico, Comprobante
 from .forms import TarjetaForm, RegistroForm, ComprobanteForm
 
@@ -131,26 +130,17 @@ def reglamento(request):
     return render(request, 'prode_app/reglamento.html')
 
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.utils import timezone
-from .models import Tarjeta, Pronostico, Partido, Fecha
-from .forms import TarjetaForm
-
 @login_required
 def crear_tarjeta(request):
     """
     Crear tarjeta para una fecha.
-    Bloquea creación si pasó el cierre.
-    Maneja errores de doble opción y mantiene opciones seleccionadas.
+    La tarjeta se crea INACTIVA.
+    El comprobante se sube después.
     """
 
-    # Todas las fechas para el dropdown
     todas_fechas = Fecha.objects.order_by("numero")
 
-    # Determinar la fecha seleccionada (GET) o primera por defecto
-    fecha_id = request.GET.get('fecha_id')
+    fecha_id = request.GET.get("fecha_id")
     if fecha_id:
         fecha = get_object_or_404(Fecha, id=fecha_id)
     else:
@@ -161,21 +151,21 @@ def crear_tarjeta(request):
             "mensaje": "No hay fechas cargadas."
         })
 
-    # Partidos de la fecha
     partidos = Partido.objects.filter(fecha=fecha)
 
-    # Calcular cierre
     cierre = calcular_cierre(fecha)
     ahora = timezone.now()
     tiempo_restante = int((cierre - ahora).total_seconds()) if cierre else None
 
-    # Bloqueo si ya cerró
+    # 🔒 Cierre
     if cierre and ahora >= cierre:
-        messages.error(request, "⛔ El tiempo para crear tarjetas para esta fecha ha finalizado.")
+        messages.error(
+            request,
+            "⛔ El tiempo para crear tarjetas para esta fecha ha finalizado."
+        )
         return render(request, "prode_app/crear_tarjeta.html", {
             "fecha": fecha,
             "partidos": partidos,
-            "tarjeta_form": TarjetaForm(initial={'fecha': fecha}),
             "primer_partido": fecha.inicio_fecha,
             "cierre_prode": cierre,
             "tiempo_restante": 0,
@@ -184,78 +174,102 @@ def crear_tarjeta(request):
             "dobles_post": {},
         })
 
+    # ================= POST =================
     if request.method == "POST":
-        tarjeta_form = TarjetaForm(request.POST)
-        opciones_post = {f"opcion1_{p.id}": request.POST.get(f"opcion1_{p.id}") for p in partidos}
-        dobles_post = {f"opcion2_{p.id}": request.POST.get(f"opcion2_{p.id}") for p in partidos}
 
-        # Validaciones de doble opción
-        dobles_seleccionadas = [k for k,v in dobles_post.items() if v]
+        opciones_post = {
+            f"opcion1_{p.id}": request.POST.get(f"opcion1_{p.id}")
+            for p in partidos
+        }
+
+        dobles_post = {
+            f"opcion2_{p.id}": request.POST.get(f"opcion2_{p.id}")
+            for p in partidos
+        }
+
+        errores = False
+
+        # Validar opción principal en todos
+        for p in partidos:
+            if not opciones_post.get(f"opcion1_{p.id}"):
+                messages.error(request, "Debes marcar una opción en todos los partidos.")
+                errores = True
+                break
+
+        # Validar doble
+        dobles_seleccionadas = [k for k, v in dobles_post.items() if v]
+
         if len(dobles_seleccionadas) == 0:
-            messages.error(request, "Debes seleccionar UNA opción doble en tu tarjeta.")
+            messages.error(request, "Debes seleccionar UNA opción doble.")
+            errores = True
         elif len(dobles_seleccionadas) > 1:
-            messages.error(request, "Solo puedes elegir UNA opción doble por tarjeta.")
+            messages.error(request, "Solo puedes elegir UNA opción doble.")
+            errores = True
         else:
-            # Validar que la doble no sea igual a la principal
             doble_key = dobles_seleccionadas[0]
             partido_id = int(doble_key.split("_")[1])
-            if opciones_post[f"opcion1_{partido_id}"] == dobles_post[doble_key]:
-                messages.error(request, "La opción doble no puede ser igual a la opción principal del partido.")
 
-        # Si hay errores, renderizamos y mantenemos las opciones
-        if messages.get_messages(request):
+            if opciones_post.get(f"opcion1_{partido_id}") == dobles_post[doble_key]:
+                messages.error(
+                    request,
+                    "La opción doble no puede ser igual a la opción principal."
+                )
+                errores = True
+
+        if errores:
             return render(request, "prode_app/crear_tarjeta.html", {
                 "fecha": fecha,
                 "partidos": partidos,
-                "tarjeta_form": tarjeta_form,
                 "opciones_post": opciones_post,
                 "dobles_post": dobles_post,
                 "primer_partido": fecha.inicio_fecha,
                 "cierre_prode": cierre,
                 "tiempo_restante": tiempo_restante,
-                "todas_fechas": todas_fechas
+                "todas_fechas": todas_fechas,
             })
 
-        # Guardar tarjeta
-        tarjeta = tarjeta_form.save(commit=False)
-        tarjeta.usuario = request.user
-        tarjeta.fecha = fecha
-        tarjeta.numero_tarjeta = Tarjeta.objects.filter(usuario=request.user, fecha=fecha).count() + 1
-        # ⚡ Aquí agregamos el guion bajo al nombre de la tarjeta
-        tarjeta.nombre_tarjeta = f"{request.user.username}_{tarjeta.numero_tarjeta}"
-        tarjeta.save()
+        # ✅ CREAR TARJETA (NO SE SETEA nombre_tarjeta)
+        numero = Tarjeta.objects.filter(
+            usuario=request.user,
+            fecha=fecha
+        ).count() + 1
 
-        # Guardar pronósticos
+        tarjeta = Tarjeta.objects.create(
+            usuario=request.user,
+            fecha=fecha,
+            numero_tarjeta=numero,
+            puntos=0
+        )
+
+        # ✅ CREAR PRONÓSTICOS
         for partido in partidos:
-            opcion1 = opciones_post.get(f"opcion1_{partido.id}")
-            opcion2 = dobles_post.get(f"opcion2_{partido.id}")
             Pronostico.objects.create(
                 tarjeta=tarjeta,
                 partido=partido,
-                opcion1=int(opcion1),
-                opcion2=int(opcion2) if opcion2 else None
+                opcion1=int(opciones_post[f"opcion1_{partido.id}"]),
+                opcion2=int(dobles_post[f"opcion2_{partido.id}"])
+                if dobles_post.get(f"opcion2_{partido.id}") else None
             )
 
-        messages.success(request, "Tarjeta creada correctamente. Ahora debes subir el comprobante para activarla.")
+        messages.success(
+            request,
+            "Tarjeta creada correctamente. Ahora debes subir el comprobante para activarla."
+        )
+
         return redirect("subir_comprobante")
 
-    else:
-        # Si es GET o se cambió de fecha, se inicializa form y opciones vacías
-        tarjeta_form = TarjetaForm(initial={'fecha': fecha})
-        opciones_post = {}
-        dobles_post = {}
-
+    # ================= GET =================
     return render(request, "prode_app/crear_tarjeta.html", {
         "fecha": fecha,
         "partidos": partidos,
-        "tarjeta_form": tarjeta_form,
-        "opciones_post": opciones_post,
-        "dobles_post": dobles_post,
+        "opciones_post": {},
+        "dobles_post": {},
         "primer_partido": fecha.inicio_fecha,
         "cierre_prode": cierre,
         "tiempo_restante": tiempo_restante,
-        "todas_fechas": todas_fechas
+        "todas_fechas": todas_fechas,
     })
+
 
 
 # --------------------------

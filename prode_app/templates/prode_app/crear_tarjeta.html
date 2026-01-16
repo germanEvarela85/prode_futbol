@@ -108,18 +108,18 @@
             <tbody>
                 {% for partido in partidos %}
                 <tr>
+                    <!-- Solo los escudos y el "vs" -->
                     <td class="team-cell">
                         {% if partido.local.escudo %}
                             <img src="{{ partido.local.escudo.url }}" width="30" height="30">
                         {% endif %}
-                        {{ partido.local.nombre }}
                         &nbsp;vs&nbsp;
                         {% if partido.visitante.escudo %}
                             <img src="{{ partido.visitante.escudo.url }}" width="30" height="30">
                         {% endif %}
-                        {{ partido.visitante.nombre }}
                     </td>
 
+                    <!-- Opción 1: Local -->
                     <td>
                         <input type="radio"
                                name="opcion1_{{ partido.id }}"
@@ -129,6 +129,7 @@
                         {{ partido.local.nombre }}
                     </td>
 
+                    <!-- Opción 1: Empate -->
                     <td>
                         <input type="radio"
                                name="opcion1_{{ partido.id }}"
@@ -138,6 +139,7 @@
                         Empate
                     </td>
 
+                    <!-- Opción 1: Visitante -->
                     <td>
                         <input type="radio"
                                name="opcion1_{{ partido.id }}"
@@ -147,6 +149,7 @@
                         {{ partido.visitante.nombre }}
                     </td>
 
+                    <!-- Opción doble -->
                     <td>
                         <select name="opcion2_{{ partido.id }}">
                             <option value="">---</option>

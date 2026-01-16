@@ -1,5 +1,5 @@
 from django import forms
-from .models import Tarjeta, Pronostico, Comprobante
+from .models import Tarjeta, Pronostico, Fecha, Comprobante
 from django.contrib.auth.forms import UserCreationForm
 from .models import Usuario
 
@@ -29,7 +29,7 @@ class PronosticoForm(forms.ModelForm):
 
 class TarjetaForm(forms.ModelForm):
     fecha = forms.ModelChoiceField(
-        queryset=None,  # se definirá en el __init__
+        queryset=Fecha.objects.all().order_by('numero'),
         label="Selecciona la fecha"
     )
 
