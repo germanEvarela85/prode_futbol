@@ -54,6 +54,7 @@ class Fecha(models.Model):
 
     def __str__(self):
         return f"Fecha {self.numero}"
+        
 
     # -------------------------------
     # MÉTODOS DE CONTROL

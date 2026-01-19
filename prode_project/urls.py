@@ -12,16 +12,16 @@ from prode_app.views import enviar_ganadores_view
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    # Home → redirige al login si no está autenticado
+    # Home → redirige al login
     path("", lambda request: redirect("login"), name="home"),
-    
-    # Registro de usuarios
+
+    # Registro
     path("registro/", views.registro, name="registro"),
 
-    # Activación de cuenta vía email
+    # Activación de cuenta
     path("activar/<uidb64>/<token>/", views.activar_cuenta, name="activar_cuenta"),
-    
-    # Login personalizado
+
+    # Login
     path(
         "login/",
         auth_views.LoginView.as_view(
@@ -34,24 +34,20 @@ urlpatterns = [
     # Logout
     path(
         "logout/",
-        auth_views.LogoutView.as_view(
-            next_page="home"
-        ),
+        auth_views.LogoutView.as_view(next_page="home"),
         name="logout"
     ),
 
-    # Redirección post-login
     path("post_login/", views.post_login, name="post_login"),
 
-    # -----------------------------
-    # 🔐 Recuperar contraseña
-    # -----------------------------
+    # -------------------------------------------------
+    # 🔐 RECUPERAR CONTRASEÑA (Django estándar)
+    # -------------------------------------------------
     path(
         "password_reset/",
         auth_views.PasswordResetView.as_view(
             template_name="prode_app/password_reset_form.html",
             email_template_name="prode_app/password_reset_email.html",
-            subject_template_name="prode_app/password_reset_subject.txt",
             success_url="/password_reset_done/"
         ),
         name="password_reset"
@@ -82,14 +78,14 @@ urlpatterns = [
         name="password_reset_complete"
     ),
 
-    # ---------------------------------------------------------
-    # 💳 SUBIR COMPROBANTE DE PAGO
-    # ---------------------------------------------------------
+    # -------------------------------------------------
+    # 💳 COMPROBANTES
+    # -------------------------------------------------
     path("subir_comprobante/", login_required(views.subir_comprobante), name="subir_comprobante"),
 
-    # ---------------------------------------------------------
+    # -------------------------------------------------
     # TARJETAS / FECHAS
-    # ---------------------------------------------------------
+    # -------------------------------------------------
     path("reglamento/", login_required(views.reglamento), name="reglamento"),
     path("crear_tarjeta/", login_required(views.crear_tarjeta), name="crear_tarjeta"),
     path("mis_tarjetas/", login_required(views.mis_tarjetas), name="mis_tarjetas"),
@@ -101,15 +97,13 @@ urlpatterns = [
 
     path("buscar_tarjeta/", login_required(views.buscar_tarjeta), name="buscar_tarjeta"),
 
-    # ---------------------------------------------------------
-    # 💰 ENVIAR POZO y GANADORES (solo admin)
-    # ---------------------------------------------------------
+    # -------------------------------------------------
+    # 💰 POZO / GANADORES
+    # -------------------------------------------------
     path("enviar_pozo/<int:fecha_id>/", login_required(views.enviar_pozo), name="enviar_pozo"),
     path("enviar_ganadores/<int:fecha_id>/", enviar_ganadores_view, name="enviar_ganadores"),
 ]
 
-# ---------------------------------------------------------
-# 📌 SERVIR MEDIA EN DESARROLLO (NECESARIO PARA ESCUDOS)
-# ---------------------------------------------------------
+# MEDIA (escudos)
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
