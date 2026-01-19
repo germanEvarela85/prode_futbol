@@ -1,0 +1,488 @@
+[
+{
+    "model": "prode_app.fecha",
+    "pk": 3,
+    "fields": {
+        "numero": 1,
+        "descripcion": "Fecha 1",
+        "inicio_fecha": "2026-01-22T17:00:00Z",
+        "cierre_prode": "2026-01-22T15:00:00Z",
+        "pozo_enviado": true,
+        "pozo_total": 4800
+    }
+},
+{
+    "model": "prode_app.fecha",
+    "pk": 4,
+    "fields": {
+        "numero": 2,
+        "descripcion": "Fecha 2",
+        "inicio_fecha": "2026-01-26T17:00:00Z",
+        "cierre_prode": "2026-01-26T15:00:00Z",
+        "pozo_enviado": false,
+        "pozo_total": null
+    }
+},
+{
+    "model": "prode_app.fecha",
+    "pk": 5,
+    "fields": {
+        "numero": 3,
+        "descripcion": "Fecha 3",
+        "inicio_fecha": "2026-01-31T17:30:00Z",
+        "cierre_prode": "2026-01-31T15:30:00Z",
+        "pozo_enviado": false,
+        "pozo_total": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 4,
+    "fields": {
+        "fecha": 3,
+        "local": 7,
+        "visitante": 2,
+        "resultado_real": 1
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 5,
+    "fields": {
+        "fecha": 3,
+        "local": 8,
+        "visitante": 5,
+        "resultado_real": 2
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 6,
+    "fields": {
+        "fecha": 3,
+        "local": 9,
+        "visitante": 4,
+        "resultado_real": 3
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 7,
+    "fields": {
+        "fecha": 3,
+        "local": 10,
+        "visitante": 11,
+        "resultado_real": 1
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 8,
+    "fields": {
+        "fecha": 3,
+        "local": 12,
+        "visitante": 13,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 9,
+    "fields": {
+        "fecha": 3,
+        "local": 14,
+        "visitante": 15,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 10,
+    "fields": {
+        "fecha": 3,
+        "local": 16,
+        "visitante": 17,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 11,
+    "fields": {
+        "fecha": 3,
+        "local": 18,
+        "visitante": 19,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 12,
+    "fields": {
+        "fecha": 3,
+        "local": 3,
+        "visitante": 6,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 13,
+    "fields": {
+        "fecha": 3,
+        "local": 20,
+        "visitante": 21,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 14,
+    "fields": {
+        "fecha": 3,
+        "local": 22,
+        "visitante": 1,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 15,
+    "fields": {
+        "fecha": 3,
+        "local": 23,
+        "visitante": 24,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 16,
+    "fields": {
+        "fecha": 3,
+        "local": 25,
+        "visitante": 26,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 17,
+    "fields": {
+        "fecha": 3,
+        "local": 27,
+        "visitante": 28,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 18,
+    "fields": {
+        "fecha": 3,
+        "local": 29,
+        "visitante": 30,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 19,
+    "fields": {
+        "fecha": 4,
+        "local": 4,
+        "visitante": 10,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 20,
+    "fields": {
+        "fecha": 4,
+        "local": 11,
+        "visitante": 3,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 21,
+    "fields": {
+        "fecha": 4,
+        "local": 5,
+        "visitante": 18,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 22,
+    "fields": {
+        "fecha": 4,
+        "local": 13,
+        "visitante": 14,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 23,
+    "fields": {
+        "fecha": 4,
+        "local": 6,
+        "visitante": 16,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 24,
+    "fields": {
+        "fecha": 4,
+        "local": 19,
+        "visitante": 12,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 25,
+    "fields": {
+        "fecha": 4,
+        "local": 7,
+        "visitante": 20,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 26,
+    "fields": {
+        "fecha": 4,
+        "local": 1,
+        "visitante": 23,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 27,
+    "fields": {
+        "fecha": 4,
+        "local": 21,
+        "visitante": 22,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 28,
+    "fields": {
+        "fecha": 4,
+        "local": 17,
+        "visitante": 25,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 29,
+    "fields": {
+        "fecha": 4,
+        "local": 26,
+        "visitante": 2,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 30,
+    "fields": {
+        "fecha": 4,
+        "local": 24,
+        "visitante": 29,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 31,
+    "fields": {
+        "fecha": 4,
+        "local": 15,
+        "visitante": 9,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 32,
+    "fields": {
+        "fecha": 4,
+        "local": 28,
+        "visitante": 8,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 33,
+    "fields": {
+        "fecha": 4,
+        "local": 30,
+        "visitante": 27,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 42,
+    "fields": {
+        "fecha": 5,
+        "local": 14,
+        "visitante": 12,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 43,
+    "fields": {
+        "fecha": 5,
+        "local": 16,
+        "visitante": 11,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 44,
+    "fields": {
+        "fecha": 5,
+        "local": 19,
+        "visitante": 5,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 45,
+    "fields": {
+        "fecha": 5,
+        "local": 3,
+        "visitante": 4,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 46,
+    "fields": {
+        "fecha": 5,
+        "local": 20,
+        "visitante": 26,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 47,
+    "fields": {
+        "fecha": 5,
+        "local": 25,
+        "visitante": 6,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 48,
+    "fields": {
+        "fecha": 5,
+        "local": 23,
+        "visitante": 21,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 49,
+    "fields": {
+        "fecha": 5,
+        "local": 22,
+        "visitante": 7,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 50,
+    "fields": {
+        "fecha": 5,
+        "local": 29,
+        "visitante": 1,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 51,
+    "fields": {
+        "fecha": 5,
+        "local": 2,
+        "visitante": 17,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 52,
+    "fields": {
+        "fecha": 5,
+        "local": 27,
+        "visitante": 24,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 53,
+    "fields": {
+        "fecha": 5,
+        "local": 9,
+        "visitante": 13,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 54,
+    "fields": {
+        "fecha": 5,
+        "local": 8,
+        "visitante": 30,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 55,
+    "fields": {
+        "fecha": 5,
+        "local": 18,
+        "visitante": 28,
+        "resultado_real": null
+    }
+},
+{
+    "model": "prode_app.partido",
+    "pk": 56,
+    "fields": {
+        "fecha": 5,
+        "local": 10,
+        "visitante": 15,
+        "resultado_real": null
+    }
+}
+]
