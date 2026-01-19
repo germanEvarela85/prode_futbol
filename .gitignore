@@ -21,6 +21,7 @@ settings_local.py
 
 # Archivos generados por Django
 staticfiles_collected/
+<<<<<<< HEAD
 media/comprobantes/
 media/tmp/
 
@@ -41,3 +42,7 @@ __pycache__/
 __pycache__/
 *.pyc
 db.sqlite3
+=======
+recordatorio.log
+*.log
+>>>>>>> dev
